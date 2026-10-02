@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/html",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "HTML / CSS · NibrasCode Studio",
+      "hasCanvas": false,
+      "bodyTextLen": 481,
+      "bodyTextHash": "2850f57439d1b355ecb9370c01e4cd04d92fd6e44dae8b2df23b1997fe209a39",
+      "bodyTextPrefix": "NibrasCode Python HTML / CSS JavaScript SQL C Tam açıq önizləmə ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/html-page.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "HTML / CSS · NibrasCode Studio",
+      "hasCanvas": false,
+      "bodyTextLen": 462,
+      "bodyTextHash": "18f9ce041ef3c827a7868b21fc241d83b945dac490f52f3dba1b6fd619e7e862",
+      "bodyTextPrefix": "NibrasCode Tam açıq önizləmə PY WEB JS SQL C Nümunələr Kart diza",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/html-page-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/html-page.json"
+}

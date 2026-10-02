@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "NibrasCode Studio",
+      "hasCanvas": false,
+      "bodyTextLen": 388,
+      "bodyTextHash": "0831f48436ae06e90c2ad3a265475be595ab081615ea301e5fbf5e63cb70c142",
+      "bodyTextPrefix": "NibrasCode Studio Limitsiz brauzer IDE Beş dil. Bir studio. Pyth",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "NibrasCode Studio",
+      "hasCanvas": false,
+      "bodyTextLen": 388,
+      "bodyTextHash": "0831f48436ae06e90c2ad3a265475be595ab081615ea301e5fbf5e63cb70c142",
+      "bodyTextPrefix": "NibrasCode Studio Limitsiz brauzer IDE Beş dil. Bir studio. Pyth",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}

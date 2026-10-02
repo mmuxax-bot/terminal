@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="az"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self';script-src 'self';style-src 'self';img-src 'self' data:;object-src 'none';base-uri 'none';form-action 'none'">
+<title>HTML/CSS Studio | NibrasCode</title><link rel="stylesheet" href="styles.css"></head>
+<body><main>
+<header><a href="https://nibrascode.com">Nibras<span>Code</span>.com</a><div id="status" data-s="ok"><i></i><em>Hazırdır</em></div></header>
+<section>
+ <div class="title"><b>HTML / CSS Studio <em class="ver">V1</em></b><small>Nəticə yeni səhifədə</small></div>
+ <nav>
+  <select id="samples" aria-label="Nümunələr"><option value="">Nümunələr…</option></select>
+  <button id="copy">Kopyala</button><button id="dl">.html</button><button id="clear">Təmizlə</button>
+  <button id="run">▶ Başlat</button>
+ </nav>
+ <div class="tabs"><button data-t="html" class="on">HTML</button><button data-t="css">CSS</button><button data-t="js">JS</button></div>
+ <div class="editor"><pre id="lines">1</pre><div class="code"><pre id="hl" aria-hidden="true"></pre><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea></div></div>
+ <div class="hint"><span><b>Başlat</b> basanda nəticə yeni səhifədə açılır (Ctrl+Enter)</span><span id="msg"></span></div>
+</section>
+<footer><a href="https://nibrascode.com">Nibras<span>Code</span>.com</a></footer>
+</main><script type="module" src="app.js?v=1"></script></body></html>

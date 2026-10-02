@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="az"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self';script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval';connect-src 'self' https://cdn.jsdelivr.net;worker-src 'self';style-src 'self';img-src 'self' data:;object-src 'none'">
+<title>Python Terminal | NibrasCode</title><link rel="stylesheet" href="styles.css"></head>
+<body><main>
+<header><a href="https://nibrascode.com">Nibras<span>Code</span>.com</a><div id="status" data-s="load"><i></i><em>Python yüklənir…</em></div></header>
+<section>
+ <div class="title"><b>Python Terminal <em class="ver">V1</em></b><small>Təhlükəsiz rejim</small></div>
+ <nav>
+  <select id="samples" aria-label="Nümunələr"><option value="">Nümunələr…</option></select>
+  <button id="copy" title="Kodu kopyala">Kopyala</button><button id="dl" title="main.py yüklə">.py</button><button id="clear">Təmizlə</button>
+  <button id="run" disabled>▶ Başlat</button>
+ </nav>
+ <div class="editor"><pre id="lines">1</pre><div class="code"><pre id="hl" aria-hidden="true"></pre><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea></div></div>
+ <details><summary>input() dəyərləri</summary><textarea id="input" rows="3" placeholder="Hər sətirdə bir dəyər"></textarea></details>
+ <div class="bar"><b>Terminal çıxışı</b><span><span id="time">40 saniyə limit</span><button id="copyout">Kopyala</button></span></div>
+ <pre id="output">Kodu başladanda nəticə burada görünəcək. (Ctrl+Enter)</pre>
+</section><footer><a href="https://nibrascode.com">Nibras<span>Code</span>.com</a></footer></main><script type="module" src="app.js?v=4"></script></body></html>

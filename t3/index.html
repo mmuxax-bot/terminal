@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="az"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self';script-src 'self';style-src 'self';frame-src 'self';img-src 'self' data:;object-src 'none';base-uri 'none';form-action 'none'">
+<title>JavaScript Terminal | NibrasCode</title><link rel="stylesheet" href="styles.css"></head>
+<body><main>
+<header><a href="https://nibrascode.com">Nibras<span>Code</span>.com</a><div id="status" data-s="load"><i></i><em>Hazırlanır…</em></div></header>
+<section>
+ <div class="title"><b>JavaScript Terminal <em class="ver">V1</em></b><small>Təhlükəsiz rejim</small></div>
+ <nav>
+  <select id="samples" aria-label="Nümunələr"><option value="">Nümunələr…</option></select>
+  <button id="copy">Kopyala</button><button id="dl">.js</button><button id="clear">Təmizlə</button>
+  <button id="run" disabled>▶ Başlat</button>
+ </nav>
+ <div class="editor"><pre id="lines">1</pre><div class="code"><pre id="hl" aria-hidden="true"></pre><textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea></div></div>
+ <div class="bar"><b>Terminal çıxışı</b><span><span id="time">40 saniyə limit</span><button id="copyout">Kopyala</button></span></div>
+ <pre id="output">Kodu başladanda nəticə burada görünəcək. (Ctrl+Enter)
+İpucu: istifadəçidən məlumat almaq üçün  await input("Sual: ")  yazın.</pre>
+</section>
+<footer><a href="https://nibrascode.com">Nibras<span>Code</span>.com</a></footer>
+</main><script type="module" src="app.js?v=1"></script></body></html>
