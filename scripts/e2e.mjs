@@ -10,6 +10,13 @@ import { join } from "node:path";
 
 const BASE = process.env.BASE || "http://localhost:8080";
 const CHROME = process.env.CHROME || ["/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser"].find(existsSync);
+const MORE = {
+  cpp: /Cəm = 15/, java: /\[1, 2, 3\]/, php: /Salam, NibrasCode!/, go: /Salam, NibrasCode!/, rust: /\[1, 4, 9\]/,
+  node: /Salam, NibrasCode!/, ts: /Əli: 91/, ruby: /Salam, NibrasCode!/, perl: /Salam, NibrasCode!/, lua: /Salam, NibrasCode!/,
+  bash: /Salam, NibrasCode!/, julia: /Salam, NibrasCode!/, r: /Orta bal: 88/, haskell: /Salam, NibrasCode!/,
+};
+const MORE_FILES = { cpp: "main.cpp", java: "Main.java", php: "main.php", go: "main.go", rust: "main.rs", node: "main.js", ts: "main.ts", ruby: "main.rb", perl: "main.pl", lua: "main.lua", bash: "main.sh", julia: "main.jl", r: "main.R", haskell: "main.hs" };
+const ALL_ROUTES = ["/python", "/html", "/javascript", "/sql", "/c", ...Object.keys(MORE).map((k) => "/" + k)];
 const results = [];
 const check = (name, ok, extra = "") => {
   results.push(ok);
@@ -50,13 +57,41 @@ async function waitEnabled(page, timeout = 90000) {
   );
 }
 
+// The code screen must contain only editor + toolbar + status line: no iframe, console, output, table, image.
+async function assertNoInline(page, label) {
+  const info = await page.evaluate(() => {
+    const body = document.body.innerText;
+    return {
+      // the JS engine runs in an invisible 0x0 sandbox iframe (title "runner"); anything else/visible is a preview
+      iframes: [...document.querySelectorAll("iframe")].filter((f) => {
+        const r = f.getBoundingClientRect();
+        return f.title !== "runner" || r.width > 1 || r.height > 1;
+      }).length,
+      tables: document.querySelectorAll("table").length,
+      imgs: document.querySelectorAll("main img, .cm-editor ~ img, img[alt='Qrafik']").length,
+      bridge: document.documentElement.outerHTML.includes("data-nibras-bridge"),
+      words: (body.match(/\b(Konsol|Terminal|Output|Çıxış|Nəticə)\b|Kodu başladanda|Kodu işə salmaq üçün|Sorğunu yazıb/g) || []),
+      editors: document.querySelectorAll(".cm-editor").length,
+    };
+  });
+  check(`no inline preview/output on code screen: ${label}`, info.iframes === 0 && info.tables === 0 && info.imgs === 0 && !info.bridge && info.words.length === 0 && info.editors >= 1, JSON.stringify(info));
+}
+
 const ctx = await newCtx();
 
 if (want("home")) {
   const page = await ctx.newPage();
   await page.goto(BASE + "/");
   const hrefs = await page.locator("a[href^='/']").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
-  check("home: all 6 language cards", ["/python", "/html", "/javascript", "/sql", "/c", "/more"].every((h) => hrefs.includes(h)), hrefs.join(","));
+  check("home: compact — 5 language cards + ONE 'Digər dillər' card", ["/python", "/html", "/javascript", "/sql", "/c", "/more"].every((h) => hrefs.includes(h)) && !hrefs.includes("/cpp") && !hrefs.includes("/java"), hrefs.join(","));
+  const more = await ctx.newPage();
+  await more.goto(BASE + "/more");
+  const mh = await more.locator("a[href^='/']").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+  check("/more: one separate card per extra language (14)", Object.keys(MORE).every((k) => mh.includes("/" + k)), mh.join(","));
+  await more.locator("a[href='/java']").click();
+  await more.waitForSelector(".cm-content");
+  check("/more: card opens that language's own lab", new URL(more.url()).pathname === "/java" && /Main\.java|class Main/.test(await more.locator(".cm-content").innerText()));
+  await more.close();
   await page.close();
 }
 
@@ -186,22 +221,44 @@ if (want("cfallback")) {
   await page.close();
 }
 
-if (want("more")) {
-  const page = await ctx.newPage();
-  await page.goto(BASE + "/more");
-  await page.waitForSelector(".cm-content");
-  const pop = await runAndPopup(ctx, page, runBtn(page));
-  const t = await outputOf(pop, /Cəm = 15/, 40000);
-  check("more: C++ runs, output in new page", /Salam, NibrasCode! Cəm = 15/.test(t), t);
-  await page.bringToFront();
-  await page.locator("select[aria-label='Dil']").selectOption("java");
-  await page.waitForTimeout(300);
-  await runBtn(page).click();
-  await pop.bringToFront();
-  const j = await outputOf(pop, /\[1, 2, 3\]/, 40000);
-  check("more: Java (public class auto-adapted) runs", /Salam, NibrasCode!/.test(j) && /\[1, 2, 3\]/.test(j), j);
-  await pop.close();
-  await page.close();
+if (want("langs")) {
+  // every extra language has its own route with only that language
+  for (const [id, re] of Object.entries(MORE)) {
+    const page = await ctx.newPage();
+    await page.goto(BASE + "/" + id);
+    await page.waitForSelector(".cm-content");
+    check(`${id}: own lab, no language switcher`, (await page.locator("select[aria-label='Dil']").count()) === 0 && (await page.locator("h1,h2").count()) >= 0);
+    await page.getByRole("button", { name: "Yüklə" }).first().click();
+    const names = await page.getByRole("menuitem").allInnerTexts();
+    check(`${id}: Yüklə menu offers ${MORE_FILES[id]}`, names.some((n) => n.includes(MORE_FILES[id])), names.join("|"));
+    await page.keyboard.press("Escape");
+    const pop = await runAndPopup(ctx, page, runBtn(page));
+    const t = await outputOf(pop, re, 60000);
+    check(`${id}: runs, output in new page`, re.test(t) && new URL(pop.url()).searchParams.get("lang") === id, t.slice(-90));
+    await assertNoInline(page, `${id} after run`);
+    await pop.close();
+    await page.close();
+  }
+}
+
+if (want("nopane")) {
+  for (const [name, c] of [["desktop", ctx], ["mobile-390", await newCtx({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })]]) {
+    for (const route of ALL_ROUTES) {
+      const page = await c.newPage();
+      await page.goto(BASE + route);
+      await page.waitForSelector(".cm-content", { timeout: 30000 });
+      await page.waitForTimeout(400);
+      await assertNoInline(page, `${route} ${name} before run`);
+      if (route === "/python") await waitEnabled(page, 120000).catch(() => {});
+      if (route === "/sql" || route === "/javascript") await waitEnabled(page, 60000).catch(() => {});
+      const [pop] = await Promise.all([c.waitForEvent("page", { timeout: 20000 }).catch(() => null), runBtn(page).click()]);
+      await page.waitForTimeout(route === "/python" || route === "/sql" ? 3500 : ["/html", "/javascript"].includes(route) ? 1500 : 6000);
+      await assertNoInline(page, `${route} ${name} after run`);
+      check(`new page opened by Start: ${route} ${name}`, !!pop && /\/preview\?lang=/.test(pop.url()), pop?.url());
+      await pop?.close();
+      await page.close();
+    }
+  }
 }
 
 if (want("python")) {
@@ -312,13 +369,13 @@ if (want("mobile")) {
     hasTouch: true,
     isMobile: true,
   });
-  for (const path of ["/", "/python", "/html", "/javascript", "/sql", "/c", "/more"]) {
+  for (const path of ["/", "/more", ...ALL_ROUTES]) {
     const page = await mctx.newPage();
     await page.goto(BASE + path);
     await page.waitForTimeout(600);
     const o = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
     check(`mobile: no horizontal overflow ${path}`, o.sw <= o.cw + 1, `${o.sw}/${o.cw}`);
-    if (path !== "/") {
+    if (path !== "/" && path !== "/more") {
       const dlBtn = page.getByRole("button", { name: "Yüklə" }).first();
       const box = await dlBtn.boundingBox();
       check(`mobile: Yüklə button visible & tappable ${path}`, !!box && box.width >= 40 && box.height >= 32 && box.x >= 0 && box.x + box.width <= 390, JSON.stringify(box));

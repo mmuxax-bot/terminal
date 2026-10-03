@@ -1,4 +1,4 @@
-export type LangId = "python" | "html" | "javascript" | "sql" | "c" | "more";
+export type LangId = "python" | "html" | "javascript" | "sql" | "c" | MoreId | "more";
 
 export type LangMeta = {
   id: LangId;
@@ -67,6 +67,24 @@ export const LANGUAGES: LangMeta[] = [
   },
 ];
 
+/** The extra languages: one card and one route (/cpp, /java, …) each; listed on /more. */
+export const EXTRA_LANGUAGES: LangMeta[] = MORE_LANGS.map((l): LangMeta => ({
+  id: l.id,
+  path: `/${l.id}`,
+  label: l.label,
+  short: l.short,
+  file: l.file,
+  blurb: l.blurb,
+  detail: `${l.label} — uzaq sandbox compiler ilə icra olunur.`,
+}));
+
+export const ALL_LANGUAGES: LangMeta[] = [...LANGUAGES, ...EXTRA_LANGUAGES];
+
+/** Is this pathname one of the extra-language labs (so the "Digər dillər" tab stays highlighted)? */
+export function isExtraPath(pathname: string) {
+  return pathname === "/more" || EXTRA_LANGUAGES.some((l) => l.path === pathname);
+}
+
 export const PY_SAMPLES: Record<string, { code: string; stdin: string }> = {
   "Salam dünya": {
     code: `ad = "NibrasCode"
@@ -101,7 +119,7 @@ print(p.ses())
 print(p.ses())`,
     stdin: "",
   },
-  "NumPy": {
+  NumPy: {
     code: `import numpy as np
 
 a = np.arange(1, 11)
@@ -114,7 +132,7 @@ print("\\nmatris:\\n", m)
 print("determinant:", float(np.linalg.det(m)))`,
     stdin: "",
   },
-  "Pandas": {
+  Pandas: {
     code: `import pandas as pd
 
 df = pd.DataFrame({
@@ -146,7 +164,7 @@ ax.legend(facecolor="#111827", labelcolor="#e8eef6", frameon=True)
 plt.tight_layout()`,
     stdin: "",
   },
-  "Rekursiya": {
+  Rekursiya: {
     code: `from functools import lru_cache
 
 @lru_cache(maxsize=None)
@@ -189,7 +207,7 @@ export const HTML_SAMPLES: Record<string, { html: string; css: string; js: strin
 }`,
     js: "",
   },
-  "Sayğac": {
+  Sayğac: {
     html: `<h1 id="n">0</h1>
 <button id="plus">+1</button>
 <button id="reset">Sıfırla</button>`,
@@ -201,7 +219,7 @@ const el = document.getElementById("n");
 document.getElementById("plus").onclick = () => el.textContent = ++n;
 document.getElementById("reset").onclick = () => el.textContent = n = 0;`,
   },
-  "Forma": {
+  Forma: {
     html: `<form id="f">
   <label>Ad<input name="ad" required></label>
   <label>Mesaj<textarea name="mesaj" rows="3"></textarea></label>
@@ -254,7 +272,7 @@ async function esas() {
   console.log("Kvadratlar:", netice);
 }
 await esas();`,
-  "Cədvəl": `const telebeler = [
+  Cədvəl: `const telebeler = [
   { ad: "Əli", bal: 91 },
   { ad: "Aysel", bal: 78 },
   { ad: "Nigar", bal: 95 }
@@ -323,7 +341,7 @@ int main(void) {
 }`,
     stdin: "12",
   },
-  "Faktorial": {
+  Faktorial: {
     code: `#include <stdio.h>
 
 long fact(int n) {
@@ -337,7 +355,7 @@ int main(void) {
 }`,
     stdin: "",
   },
-  "Struct": {
+  Struct: {
     code: `#include <stdio.h>
 #include <string.h>
 
@@ -362,10 +380,10 @@ int main(void) {
 
 export const PY_HINTS: Record<string, string> = {
   NameError: "Dəyişən və ya funksiya əvvəlcədən təyin edilməyib, yaxud adda hərf səhvi var.",
-  SyntaxError: "Yazılış xətası: mötərizə, dırnaq və ya \":\" işarəsini yoxlayın.",
+  SyntaxError: 'Yazılış xətası: mötərizə, dırnaq və ya ":" işarəsini yoxlayın.',
   IndentationError: "Boşluqlar (indent) düz deyil — hər blok 4 boşluqla sürüşməlidir.",
   TypeError: "Dəyər tipi uyğun gəlmir (məs. mətn + rəqəm). str() və ya int() işlədin.",
-  ValueError: "Dəyər düzgün formatda deyil (məs. int(\"abc\")).",
+  ValueError: 'Dəyər düzgün formatda deyil (məs. int("abc")).',
   ZeroDivisionError: "Sıfıra bölmək olmaz.",
   IndexError: "Siyahıda belə indeks yoxdur.",
   KeyError: "Lüğətdə belə açar yoxdur.",
@@ -397,6 +415,7 @@ export const SQL_HINTS: [RegExp, string][] = [
 ];
 
 import { mimeFor, saveBlob, textBlob } from "@/lib/files";
+import { MORE_LANGS, type MoreId } from "@/lib/more-langs";
 
 const PREFIX = "nibrascode.studio.";
 
@@ -594,20 +613,10 @@ export function buildHtmlDoc(
   if (/<html[\s>]/i.test(html)) {
     let d = html;
     if (br) {
-      d = /<head[\s>]/i.test(d)
-        ? d.replace(/<head[^>]*>/i, (m) => m + "\n" + br)
-        : br + d;
+      d = /<head[\s>]/i.test(d) ? d.replace(/<head[^>]*>/i, (m) => m + "\n" + br) : br + d;
     }
-    d = st
-      ? /<\/head>/i.test(d)
-        ? d.replace(/<\/head>/i, () => st + "\n</head>")
-        : st + d
-      : d;
-    return sc
-      ? /<\/body>/i.test(d)
-        ? d.replace(/<\/body>/i, () => sc + "\n</body>")
-        : d + sc
-      : d;
+    d = st ? (/<\/head>/i.test(d) ? d.replace(/<\/head>/i, () => st + "\n</head>") : st + d) : d;
+    return sc ? (/<\/body>/i.test(d) ? d.replace(/<\/body>/i, () => sc + "\n</body>") : d + sc) : d;
   }
   return `<!doctype html>
 <html lang="az">

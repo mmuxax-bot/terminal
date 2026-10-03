@@ -219,7 +219,7 @@ export function CLab() {
       <div className="min-h-0 flex-1">
         <CodeEditor lang="c" value={code} onChange={onChange} onRun={run} />
       </div>
-      <div className="grid shrink-0 gap-3 border-t border-torder bg-surface p-3 sm:grid-cols-2">
+      <div className="grid shrink-0 gap-3 border-t border-border bg-surface p-3 sm:grid-cols-2">
         <label className="grid gap-1.5 text-[11px] uppercase tracking-wide text-subtle">
           Compiler flags
           <div className="grid grid-cols-[140px_minmax(0,1fr)] gap-2">
@@ -242,7 +242,7 @@ export function CLab() {
                 setFlags(e.target.value);
                 setProfile("custom");
               }}
-              className="h-10 rounded-md border border-torder bg-elevated px-2 font-mono text-xs text-fg outline-none"
+              className="h-10 rounded-md border border-border bg-elevated px-2 font-mono text-xs text-fg outline-none"
             />
           </div>
         </label>
@@ -253,7 +253,7 @@ export function CLab() {
             onChange={(e) => setStdin(e.target.value)}
             rows={2}
             placeholder="Proqram üçün giriş"
-            className="rounded-md border border-torder bg-elevated p-2 font-mono text-xs text-fg outline-none"
+            className="rounded-md border border-border bg-elevated p-2 font-mono text-xs text-fg outline-none"
           />
         </label>
       </div>

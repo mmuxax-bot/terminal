@@ -8,7 +8,7 @@ import {
   type PreviewPayload,
   type PreviewState,
 } from "@/lib/preview-channel";
-import { HTML_PREVIEW_ALLOW, HTML_PREVIEW_SANDBOX, LANGUAGES, stripBridge } from "@/lib/studio";
+import { HTML_PREVIEW_ALLOW, HTML_PREVIEW_SANDBOX, ALL_LANGUAGES, stripBridge } from "@/lib/studio";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Download, Expand, RefreshCw, Share2, Terminal } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -68,7 +68,7 @@ type ConsoleLine = { id: number; tone: "o" | "w" | "e" | "h"; text: string };
 
 function PreviewPage() {
   const { lang } = Route.useSearch();
-  const meta = LANGUAGES.find((l) => l.id === lang);
+  const meta = ALL_LANGUAGES.find((l) => l.id === lang);
   const [p, setP] = useState<PreviewPayload | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [nonce, setNonce] = useState(0);

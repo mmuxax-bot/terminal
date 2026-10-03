@@ -19,6 +19,14 @@ export const Route = createRootRoute({
           "Limitsiz brauzer IDE: Python, HTML/CSS, JavaScript, SQL və C — NibrasCode Studio.",
       },
     ],
+    // Safety net: this app ships no service worker. Drop any stale one (and its caches) that an
+    // older build may have registered so an outdated UI can never be served from cache.
+    scripts: [
+      {
+        children:
+          "try{if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.unregister()})}).catch(function(){})}if(window.caches){caches.keys().then(function(k){k.forEach(function(n){caches.delete(n)})}).catch(function(){})}}catch(e){}",
+      },
+    ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "stylesheet", href: appCss },

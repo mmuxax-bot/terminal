@@ -1,14 +1,14 @@
-import { AppShell, NativeSelect, ToolRow } from "@/components/app-shell";
+import { AppShell, ToolRow } from "@/components/app-shell";
 import { CodeEditor } from "@/components/code-editor";
 import { type LogItem } from "@/components/console-pane";
 import { DownloadMenu } from "@/components/download-menu";
 import { PreviewStatus } from "@/components/preview-status";
 import { Button } from "@/components/ui/button";
 import { runCCompile } from "@/lib/compile";
-import { getMoreLang, MORE_LANGS } from "@/lib/more-langs";
+import { getMoreLang, type MoreId } from "@/lib/more-langs";
 import { derivePreviewState } from "@/lib/preview-channel";
 import { simpleFiles } from "@/lib/project-files";
-import { loadJSON, loadStr, saveJSON, saveStr } from "@/lib/studio";
+import { loadJSON, loadStr, saveStr } from "@/lib/studio";
 import { usePreview } from "@/lib/use-preview";
 import { adaptJava, formatResult, resultFailed } from "@/lib/wandbox";
 import { uid } from "@/lib/utils";
@@ -16,14 +16,12 @@ import { Copy, Eraser, Play, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-type Codes = Record<string, string>;
-
-export function MoreLab() {
-  const [langId, setLangId] = useState(MORE_LANGS[0].id);
-  const lang = getMoreLang(langId);
-  const [codes, setCodes] = useState<Codes>({});
-  const [stdin, setStdin] = useState(MORE_LANGS[0].stdin ?? "");
-  const [flags, setFlags] = useState(MORE_LANGS[0].flags);
+/** One language per page (/cpp, /java, …): editor + run through Wandbox; result only in /preview. */
+export function WandboxLab({ id }: { id: MoreId }) {
+  const lang = getMoreLang(id);
+  const [code, setCode] = useState(lang.sample);
+  const [stdin, setStdin] = useState(lang.stdin ?? "");
+  const [flags, setFlags] = useState(lang.flags);
   const [hydrated, setHydrated] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<"ok" | "run" | "err">("ok");
@@ -34,43 +32,31 @@ export function MoreLab() {
   const t0 = useRef(0);
   const runRef = useRef<() => void>(() => {});
   const run = useCallback(() => runRef.current(), []);
-  const pv = usePreview("more", lang.label, lang.file);
-
-  const code = codes[langId] ?? lang.sample;
-  const onChange = useCallback((v: string) => setCodes((c) => ({ ...c, [langId]: v })), [langId]);
+  const pv = usePreview(id, lang.label, lang.file);
+  const onChange = useCallback((v: string) => setCode(v), []);
 
   const append = useCallback((tone: "o" | "e" | "r" | "h" | "m" | "w", text: string) => {
     setItems((prev) => [...prev, { id: uid(), kind: "text", tone, text }]);
   }, []);
 
+  const key = (k: string) => `lab.${id}.${k}`;
+
   useEffect(() => {
-    const id = loadStr("more.lang", MORE_LANGS[0].id);
-    const l = getMoreLang(id);
-    setLangId(l.id);
-    setCodes(loadJSON<Codes>("more.codes", {}));
-    setStdin(loadStr("more.stdin." + l.id, l.stdin ?? ""));
-    setFlags(loadStr("more.flags." + l.id, l.flags));
+    const legacy = loadJSON<Record<string, string>>("more.codes", {});
+    setCode(loadStr(key("code"), legacy[id] ?? lang.sample));
+    setStdin(loadStr(key("stdin"), loadStr("more.stdin." + id, lang.stdin ?? "")));
+    setFlags(loadStr(key("flags"), loadStr("more.flags." + id, lang.flags)));
     setHydrated(true);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   useEffect(() => {
     if (!hydrated) return;
-    saveStr("more.lang", langId);
-    saveJSON("more.codes", codes);
-    saveStr("more.stdin." + langId, stdin);
-    saveStr("more.flags." + langId, flags);
-  }, [langId, codes, stdin, flags, hydrated]);
-
-  function switchLang(id: string) {
-    const l = getMoreLang(id);
-    setLangId(l.id);
-    setStdin(loadStr("more.stdin." + l.id, l.stdin ?? ""));
-    setFlags(loadStr("more.flags." + l.id, l.flags));
-    setItems([]);
-    setElapsed("");
-    setStatus("ok");
-    setLabel("Uzaq compiler");
-  }
+    saveStr(key("code"), code);
+    saveStr(key("stdin"), stdin);
+    saveStr(key("flags"), flags);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, code, stdin, flags, hydrated]);
 
   useEffect(() => {
     pv.push({
@@ -136,7 +122,7 @@ export function MoreLab() {
 
   return (
     <AppShell
-      lang="more"
+      lang={id}
       status={status}
       statusLabel={label}
       actions={
@@ -152,13 +138,6 @@ export function MoreLab() {
       }
     >
       <ToolRow>
-        <NativeSelect label="Dil" value={langId} onChange={switchLang} className="min-w-[130px]">
-          {MORE_LANGS.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.label}
-            </option>
-          ))}
-        </NativeSelect>
         <Button
           size="sm"
           onClick={() => {
@@ -169,11 +148,11 @@ export function MoreLab() {
           <Copy className="size-3.5" />
           Kopyala
         </Button>
-        <DownloadMenu lang="more" zipName={`${lang.id}-layihe`} files={files} />
+        <DownloadMenu lang={id} zipName={`${lang.id}-layihe`} files={files} />
         <Button
           size="sm"
           onClick={() => {
-            setCodes((c) => ({ ...c, [langId]: lang.sample }));
+            setCode(lang.sample);
             setStdin(lang.stdin ?? "");
             setItems([]);
           }}
@@ -197,16 +176,16 @@ export function MoreLab() {
         onPrime={() => pv.prime()}
       />
       <div className="min-h-0 flex-1">
-        <CodeEditor key={langId} lang={lang.editor} value={code} onChange={onChange} onRun={run} />
+        <CodeEditor lang={lang.editor} value={code} onChange={onChange} onRun={run} />
       </div>
-      <div className="grid shrink-0 gap-3 border-t border-torder bg-surface p-3 sm:grid-cols-2">
+      <div className="grid shrink-0 gap-3 border-t border-border bg-surface p-3 sm:grid-cols-2">
         <label className="grid gap-1.5 text-[11px] uppercase tracking-wide text-subtle">
           Compiler / runtime parametrləri
           <input
             value={flags}
             onChange={(e) => setFlags(e.target.value)}
             placeholder="(boş ola bilər)"
-            className="h-10 rounded-md border border-torder bg-elevated px-2 font-mono text-xs text-fg outline-none"
+            className="h-10 rounded-md border border-border bg-elevated px-2 font-mono text-xs text-fg outline-none"
           />
         </label>
         <label className="grid gap-1.5 text-[11px] uppercase tracking-wide text-subtle">
@@ -216,7 +195,7 @@ export function MoreLab() {
             onChange={(e) => setStdin(e.target.value)}
             rows={2}
             placeholder="Proqram üçün giriş"
-            className="rounded-md border border-torder bg-elevated p-2 font-mono text-xs text-fg outline-none"
+            className="rounded-md border border-border bg-elevated p-2 font-mono text-xs text-fg outline-none"
           />
         </label>
       </div>

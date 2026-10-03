@@ -1,7 +1,27 @@
 import type { EditorLang } from "@/lib/cm-theme";
 
+export type MoreId =
+  | "cpp"
+  | "java"
+  | "php"
+  | "go"
+  | "rust"
+  | "node"
+  | "ts"
+  | "ruby"
+  | "perl"
+  | "lua"
+  | "bash"
+  | "julia"
+  | "r"
+  | "haskell";
+
 export type MoreLang = {
-  id: string;
+  id: MoreId;
+  /** Short description for the home card. */
+  blurb: string;
+  /** Tab label. */
+  short: string;
   label: string;
   /** Wandbox compiler id. */
   compiler: string;
@@ -17,6 +37,8 @@ export type MoreLang = {
 export const MORE_LANGS: MoreLang[] = [
   {
     id: "cpp",
+    blurb: "C++20, STL, g++",
+    short: "C++",
     label: "C++",
     compiler: "gcc-head",
     file: "main.cpp",
@@ -40,6 +62,8 @@ int main() {
   },
   {
     id: "java",
+    blurb: "OpenJDK 22, Scanner",
+    short: "JAVA",
     label: "Java",
     compiler: "openjdk-jdk-22+36",
     file: "Main.java",
@@ -62,6 +86,8 @@ public class Main {
   },
   {
     id: "php",
+    blurb: "PHP 8.3, CLI",
+    short: "PHP",
     label: "PHP",
     compiler: "php-8.3.12",
     file: "main.php",
@@ -78,6 +104,8 @@ foreach ([1, 2, 3] as $i) {
   },
   {
     id: "go",
+    blurb: "Go 1.23, goroutine",
+    short: "GO",
     label: "Go",
     compiler: "go-1.23.2",
     file: "main.go",
@@ -100,6 +128,8 @@ func main() {
   },
   {
     id: "rust",
+    blurb: "Rust 1.82, təhlükəsiz yaddaş",
+    short: "RS",
     label: "Rust",
     compiler: "rust-1.82.0",
     file: "main.rs",
@@ -119,6 +149,8 @@ fn main() {
   },
   {
     id: "node",
+    blurb: "Node 20, require / fs",
+    short: "NODE",
     label: "Node.js",
     compiler: "nodejs-20.17.0",
     file: "main.js",
@@ -132,6 +164,8 @@ console.log([1, 2, 3].map((x) => x * x));
   },
   {
     id: "ts",
+    blurb: "TypeScript 5.6",
+    short: "TS",
     label: "TypeScript",
     compiler: "typescript-5.6.2",
     file: "main.ts",
@@ -153,6 +187,8 @@ for (const t of telebeler) {
   },
   {
     id: "ruby",
+    blurb: "Ruby 3.4, blok və iterator",
+    short: "RB",
     label: "Ruby",
     compiler: "ruby-3.4.9",
     file: "main.rb",
@@ -165,6 +201,8 @@ puts "Salam, #{ad}!"
   },
   {
     id: "perl",
+    blurb: "Perl 5.40, regex",
+    short: "PL",
     label: "Perl",
     compiler: "perl-5.40.0",
     file: "main.pl",
@@ -179,6 +217,8 @@ print $_ * $_, "\\n" for 1..3;
   },
   {
     id: "lua",
+    blurb: "Lua 5.4, yüngül skript",
+    short: "LUA",
     label: "Lua",
     compiler: "lua-5.4.7",
     file: "main.lua",
@@ -192,6 +232,8 @@ for i = 1, 3 do print(i * i) end
   },
   {
     id: "bash",
+    blurb: "Shell skriptləri",
+    short: "SH",
     label: "Bash",
     compiler: "bash",
     file: "main.sh",
@@ -205,6 +247,8 @@ for i in 1 2 3; do echo $((i * i)); done
   },
   {
     id: "julia",
+    blurb: "Julia 1.10, elmi hesab",
+    short: "JL",
     label: "Julia",
     compiler: "julia-1.10.5",
     file: "main.jl",
@@ -218,6 +262,8 @@ println([x^2 for x in 1:3])
   },
   {
     id: "r",
+    blurb: "R 4.4, statistika",
+    short: "R",
     label: "R",
     compiler: "r-4.4.1",
     file: "main.R",
@@ -230,6 +276,8 @@ print(summary(bal))
   },
   {
     id: "haskell",
+    blurb: "GHC 9.10, funksional",
+    short: "HS",
     label: "Haskell",
     compiler: "ghc-9.10.1",
     file: "main.hs",
@@ -243,6 +291,10 @@ main = do
   },
 ];
 
+export function findMoreLang(id: string): MoreLang | undefined {
+  return MORE_LANGS.find((l) => l.id === id);
+}
+
 export function getMoreLang(id: string): MoreLang {
-  return MORE_LANGS.find((l) => l.id === id) ?? MORE_LANGS[0];
+  return findMoreLang(id) ?? MORE_LANGS[0];
 }

@@ -41,12 +41,15 @@ export function storedProjects(): Partial<Record<LangId, ProjectFile[]>> {
   if (sql) out.sql = simpleFiles("query.sql", sql);
   const c = loadStr("c.code", "");
   if (c) out.c = simpleFiles("main.c", c, [{ name: "stdin.txt", content: loadStr("c.stdin", "") }]);
-  const codes = loadJSON<Record<string, string>>("more.codes", {});
-  const moreFiles: ProjectFile[] = [];
+  const legacy = loadJSON<Record<string, string>>("more.codes", {});
   for (const l of MORE_LANGS) {
-    if (codes[l.id]) moreFiles.push({ name: l.file, content: codes[l.id] });
+    const code = loadStr("lab." + l.id + ".code", "") || legacy[l.id] || "";
+    if (code) {
+      out[l.id] = simpleFiles(l.file, code, [
+        { name: "stdin.txt", content: loadStr("lab." + l.id + ".stdin", "") },
+      ]);
+    }
   }
-  if (moreFiles.length) out.more = moreFiles;
   return out;
 }
 

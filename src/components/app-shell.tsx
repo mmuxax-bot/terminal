@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LANGUAGES, type LangId } from "@/lib/studio";
+import { isExtraPath, LANGUAGES, type LangId } from "@/lib/studio";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -49,15 +49,15 @@ export function AppShell({
         <Link to="/" className="shrink-0 text-[17px] font-semibold tracking-tight text-fg">
           Nibras<span className="text-accent">Code</span>
         </Link>
-        <nav className="hidden min-w-0 flex-1 items-center gap-1 md:flex">
+        <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto md:flex">
           {LANGUAGES.map((l) => {
-            const on = pathname === l.path;
+            const on = l.id === "more" ? isExtraPath(pathname) : pathname === l.path;
             return (
               <Link
                 key={l.id}
                 to={l.path}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-sm transition-colors duration-150",
+                  "shrink-0 rounded-md px-3 py-1.5 text-sm transition-colors duration-150",
                   on ? "bg-elevated text-fg" : "text-muted hover:bg-elevated/60 hover:text-fg",
                 )}
               >
@@ -73,7 +73,7 @@ export function AppShell({
       </header>
       <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-border px-2 py-2 md:hidden">
         {LANGUAGES.map((l) => {
-          const on = pathname === l.path;
+          const on = l.id === "more" ? isExtraPath(pathname) : pathname === l.path;
           return (
             <Link
               key={l.id}
