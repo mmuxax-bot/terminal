@@ -17,6 +17,7 @@ import { Route as JavascriptRouteImport } from './routes/javascript'
 import { Route as MoreRouteImport } from './routes/more'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as PythonRouteImport } from './routes/python'
+import { Route as RunRouteImport } from './routes/run'
 import { Route as SqlRouteImport } from './routes/sql'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +60,11 @@ const PythonRoute = PythonRouteImport.update({
   path: '/python',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RunRoute = RunRouteImport.update({
+  id: '/run',
+  path: '/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SqlRoute = SqlRouteImport.update({
   id: '/sql',
   path: '/sql',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/more': typeof MoreRoute
   '/preview': typeof PreviewRoute
   '/python': typeof PythonRoute
+  '/run': typeof RunRoute
   '/sql': typeof SqlRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/more': typeof MoreRoute
   '/preview': typeof PreviewRoute
   '/python': typeof PythonRoute
+  '/run': typeof RunRoute
   '/sql': typeof SqlRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/more': typeof MoreRoute
   '/preview': typeof PreviewRoute
   '/python': typeof PythonRoute
+  '/run': typeof RunRoute
   '/sql': typeof SqlRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/more'
     | '/preview'
     | '/python'
+    | '/run'
     | '/sql'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/more'
     | '/preview'
     | '/python'
+    | '/run'
     | '/sql'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/more'
     | '/preview'
     | '/python'
+    | '/run'
     | '/sql'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   MoreRoute: typeof MoreRoute
   PreviewRoute: typeof PreviewRoute
   PythonRoute: typeof PythonRoute
+  RunRoute: typeof RunRoute
   SqlRoute: typeof SqlRoute
 }
 
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PythonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/run': {
+      id: '/run'
+      path: '/run'
+      fullPath: '/run'
+      preLoaderRoute: typeof RunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sql': {
       id: '/sql'
       path: '/sql'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   MoreRoute: MoreRoute,
   PreviewRoute: PreviewRoute,
   PythonRoute: PythonRoute,
+  RunRoute: RunRoute,
   SqlRoute: SqlRoute,
 }
 export const routeTree = rootRouteImport

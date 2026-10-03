@@ -20,6 +20,11 @@ Pop-up bloklansa status sətri xəbərdarlıq göstərir; **«Önizləməni aç�
 Səhifə studio ilə canlı sinxronlaşır (BroadcastChannel + localStorage). `input()` / `await input()` cavabı redaktor ekranında kiçik giriş sətri ilə verilir.
 HTML önizləməsi tam səhifədir (konsol paneli, yenilə, tam ekran). Digər dillərdə çıxış (mətn, cədvəl, qrafik şəkli) formatlı göstərilir.
 
+### Birbaşa icra linki: `/run`
+`/run#l=python|html|javascript&c=<base64url kod>[&z=1]` — kod linkin hash hissəsindədir (serverə getmir), səhifə açılan kimi kodu avtomatik işlədir:
+HTML tam səhifədə (sandbox iframe), Python brauzerdə (Pyodide) çıxışla. `z=1` kodun deflate-raw ilə sıxıldığını bildirir. `input()` üçün giriş sətri çıxır.
+Nibras AI-dəki «Aç» düyməsi bu linki yeni tabda açır. Format: `src/lib/run-link.ts`.
+
 ### Kodu yüklə
 Toolbar-da **Yüklə** menyusu: cari fayl(lar), «Bütün fayllar (.zip)», «Bütün dillər (.zip)», Paylaş (Web Share API varsa).
 Mobil: gizli `<a download>`; dəstəklənmirsə Web Share API (fayl) → yeni tabda açma. ZIP istənilən asılılıqsız yazılıb (`src/lib/files.ts`).

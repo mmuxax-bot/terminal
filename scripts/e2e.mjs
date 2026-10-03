@@ -391,6 +391,24 @@ if (want("share")) {
   await sctx.close();
 }
 
+if (want("run")) {
+  // /run#l=..&c=..: kod hash-də, səhifə açılan kimi avtomatik işləyir (Nibras AI «Aç» düyməsi)
+  const b64u = (str) => Buffer.from(str, "utf8").toString("base64url");
+  const rctx = await newCtx();
+  const py = await rctx.newPage();
+  await py.goto(BASE + "/run#l=python&c=" + b64u('print("Salam run ə")\nprint(sum(range(5)))'));
+  const pyOut = await py.waitForFunction(() => /Salam run ə/.test(document.body.innerText) && /\b10\b/.test(document.body.innerText), null, { timeout: 120000 }).then(() => true, () => false);
+  check("run: python avtomatik işləyir", pyOut, await py.evaluate(() => document.body.innerText));
+  const html = await rctx.newPage();
+  await html.goto(BASE + "/run#l=html&c=" + b64u("<h1 id=h>Salam HTML</h1><script>document.getElementById('h').textContent='JS işlədi'</script>"));
+  const fr = html.frameLocator("[data-testid=run-frame]");
+  check("run: html skript işləyir", await fr.locator("#h").innerText({ timeout: 15000 }).then((t) => t === "JS işlədi", () => false));
+  const bad = await rctx.newPage();
+  await bad.goto(BASE + "/run#l=python&c=***");
+  check("run: pozuq link Azərbaycanca xəta göstərir", await bad.getByTestId("run-error").innerText({ timeout: 10000 }).then((t) => /zədəli/.test(t), () => false));
+  await rctx.close();
+}
+
 if (want("mobile")) {
   const mctx = await newCtx({
     viewport: { width: 390, height: 844 },
