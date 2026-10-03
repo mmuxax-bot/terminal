@@ -1,5 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { WANDBOX_URL, wandboxBody, type CompileRequest, type CompileResult } from "@/lib/wandbox";
+
+export type { CompileResult } from "@/lib/wandbox";
 
 const Input = z.object({
   code: z.string().max(400000),
@@ -8,28 +11,20 @@ const Input = z.object({
   flags: z.string().max(2000),
 });
 
-export type CompileResult = {
-  status?: string | number;
-  compiler_error?: string;
-  compiler_message?: string;
-  program_output?: string;
-  program_error?: string;
-  program_message?: string;
+const HEADERS = {
+  "Content-Type": "application/json",
+  Accept: "application/json",
+  "User-Agent": "NibrasCode-Studio/1.0",
 };
 
+/** Server-side fallback (used when the browser cannot reach wandbox.org directly). */
 export const compileC = createServerFn({ method: "POST" })
   .validator((d: unknown) => Input.parse(d))
   .handler(async ({ data }): Promise<CompileResult> => {
-    const res = await fetch("https://wandbox.org/api/compile.json", {
+    const res = await fetch(WANDBOX_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        code: data.code,
-        compiler: data.compiler,
-        stdin: data.stdin,
-        "compiler-option-raw": data.flags,
-        save: false,
-      }),
+      headers: HEADERS,
+      body: JSON.stringify(wandboxBody(data)),
     });
     if (!res.ok) {
       const t = await res.text().catch(() => "");
@@ -38,22 +33,17 @@ export const compileC = createServerFn({ method: "POST" })
     return (await res.json()) as CompileResult;
   });
 
+/** Compile & run through Wandbox: directly from the browser, falling back to the server. */
 export async function runCCompile(
-  req: z.infer<typeof Input>,
+  req: CompileRequest,
   signal?: AbortSignal,
 ): Promise<CompileResult> {
   try {
-    const r = await fetch("https://wandbox.org/api/compile.json", {
+    const r = await fetch(WANDBOX_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       signal,
-      body: JSON.stringify({
-        code: req.code,
-        compiler: req.compiler,
-        stdin: req.stdin,
-        "compiler-option-raw": req.flags,
-        save: false,
-      }),
+      body: JSON.stringify(wandboxBody(req)),
     });
     if (!r.ok) throw new Error("http");
     return (await r.json()) as CompileResult;

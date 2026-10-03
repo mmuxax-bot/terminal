@@ -175,6 +175,10 @@ export default defineConfig(({ command, isPreview }) => ({
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
             serverDir: "./server",
+            // The repo root also holds the legacy static landing page (index.html).
+            // Without this, Nitro adopts it as the SSR "renderer template" and every
+            // route (/python, /c, /preview, ...) answers with that page in production.
+            renderer: false,
           }),
         ]
       : []),
