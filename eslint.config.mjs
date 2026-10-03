@@ -15,6 +15,13 @@ export default tseslint.config(
       ".nitro/**",
       "node_modules/**",
       "src/routeTree.gen.ts",
+      // legacy standalone static builds (own deployments, plain browser scripts)
+      "public/**",
+      "t1/**",
+      "t2/**",
+      "t3/**",
+      "t4/**",
+      "t5/**",
     ],
   },
   js.configs.recommended,

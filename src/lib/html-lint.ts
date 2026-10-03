@@ -200,7 +200,7 @@ export function lintCss(src: string): HtmlIssue[] {
 export function lintJs(src: string): HtmlIssue[] {
   if (!src.trim()) return [];
   try {
-    // eslint-disable-next-line no-new-func
+     
     new Function(src);
     return [];
   } catch (err) {
