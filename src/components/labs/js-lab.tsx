@@ -2,10 +2,15 @@ import { AppShell, NativeSelect, ToolRow } from "@/components/app-shell";
 import { CodeEditor, type EditorDiagnostic } from "@/components/code-editor";
 import { ConsolePane, type LogItem } from "@/components/console-pane";
 import { Button } from "@/components/ui/button";
-import { download, JS_HINTS, JS_SAMPLES, loadStr, saveStr } from "@/lib/studio";
+import { DownloadMenu } from "@/components/download-menu";
+import { PreviewControls } from "@/components/preview-controls";
+import { derivePreviewState } from "@/lib/preview-channel";
+import { simpleFiles } from "@/lib/project-files";
+import { usePreview } from "@/lib/use-preview";
+import { JS_HINTS, JS_SAMPLES, loadStr, saveStr } from "@/lib/studio";
 import { uid } from "@/lib/utils";
-import { Copy, Download, Eraser, Play, Square } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Copy, Eraser, Play, Square } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Split, Panel, Handle } from "@/components/split";
 import { toast } from "sonner";
 
@@ -31,6 +36,7 @@ export function JsLab() {
   const busyRef = useRef(false);
   const codeRef = useRef(code);
   codeRef.current = code;
+  const pv = usePreview("javascript", "JavaScript", "main.js");
   const run = useCallback(() => runRef.current(), []);
   const onChange = useCallback((v: string) => setCode(v), []);
 
@@ -57,6 +63,27 @@ export function JsLab() {
     host.current?.append(f);
     frame.current = f;
   }, []);
+
+  useEffect(() => {
+    pv.push({
+      code: code,
+      items,
+      state: derivePreviewState({
+        busy: busy,
+        waiting: waiting,
+        failed: status === "err",
+        hasOutput: items.length > 0,
+      }),
+      label,
+      elapsed: busy ? undefined : elapsed,
+      note: "JavaScript brauzerdə, təcrid olunmuş sandbox-da icra olunur.",
+    });
+  }, [code, items, busy, waiting, status, label, elapsed, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openPreview = useCallback(() => {
+    const ok = pv.open({ code: code, items, state: "idle", label: "Gözləyir" });
+    if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
+  }, [pv, code, items]);
 
   useEffect(() => {
     const saved = loadStr("js.code", "");
@@ -142,6 +169,10 @@ export function JsLab() {
       return;
     }
     if (!ready || !frame.current?.contentWindow) return;
+    if (pv.autoOpen) {
+      const ok = pv.open({ code, items: [], state: "running", label: "İcra olunur…" });
+      if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
+    }
     busyRef.current = true;
     setBusy(true);
     setWaiting(false);
@@ -156,6 +187,8 @@ export function JsLab() {
     }, 120);
     frame.current.contentWindow.postMessage({ t: "run", code }, "*");
   };
+
+  const files = useMemo(() => simpleFiles("main.js", code), [code]);
 
   function onInput(v: string) {
     append("o", v + "\n");
@@ -215,10 +248,8 @@ export function JsLab() {
           <Copy className="size-3.5" />
           Kopyala
         </Button>
-        <Button size="sm" onClick={() => download("main.js", code, "text/javascript")}>
-          <Download className="size-3.5" />
-          .js
-        </Button>
+        <DownloadMenu lang="javascript" zipName="javascript-layihe" files={files} />
+        <PreviewControls auto={pv.autoOpen} onAuto={pv.setAutoOpen} onOpen={openPreview} />
         <Button
           size="sm"
           onClick={() => {
@@ -235,7 +266,13 @@ export function JsLab() {
       </ToolRow>
       <Split orientation="vertical" className="min-h-0 flex-1">
         <Panel defaultSize="62%" minSize="28%">
-          <CodeEditor lang="javascript" value={code} onChange={onChange} onRun={run} diagnostics={diags} />
+          <CodeEditor
+            lang="javascript"
+            value={code}
+            onChange={onChange}
+            onRun={run}
+            diagnostics={diags}
+          />
         </Panel>
         <Handle className="h-1.5" />
         <Panel defaultSize="38%" minSize="18%">

@@ -2,18 +2,16 @@ import { AppShell, NativeSelect, ToolRow } from "@/components/app-shell";
 import { CodeEditor } from "@/components/code-editor";
 import { ConsolePane, type LogItem } from "@/components/console-pane";
 import { Button } from "@/components/ui/button";
+import { DownloadMenu } from "@/components/download-menu";
+import { PreviewControls } from "@/components/preview-controls";
+import { derivePreviewState } from "@/lib/preview-channel";
+import { simpleFiles } from "@/lib/project-files";
+import { usePreview } from "@/lib/use-preview";
 import { sqlRuntime, type SqlMsg, type SqlTable } from "@/lib/sql-runtime";
-import {
-  download,
-  downloadBytes,
-  loadStr,
-  saveStr,
-  SQL_HINTS,
-  SQL_SAMPLES,
-} from "@/lib/studio";
+import { downloadBytes, loadStr, saveStr, SQL_HINTS, SQL_SAMPLES } from "@/lib/studio";
 import { uid } from "@/lib/utils";
-import { Copy, Download, Eraser, Play, RotateCcw, Square } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Copy, Eraser, Play, RotateCcw, Square } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Split, Panel, Handle } from "@/components/split";
 import { toast } from "sonner";
 
@@ -27,9 +25,7 @@ export function SqlLab() {
   const [status, setStatus] = useState<"load" | "ok" | "run" | "err">(
     sqlRuntime.ready ? "ok" : "load",
   );
-  const [label, setLabel] = useState(
-    sqlRuntime.ready ? "SQLite hazırdır" : "SQLite yüklənir…",
-  );
+  const [label, setLabel] = useState(sqlRuntime.ready ? "SQLite hazırdır" : "SQLite yüklənir…");
   const [items, setItems] = useState<LogItem[]>([]);
   const [tables, setTables] = useState<SqlTable[]>([]);
   const [elapsed, setElapsed] = useState("");
@@ -37,12 +33,34 @@ export function SqlLab() {
   const timer = useRef<number | null>(null);
   const selection = useRef("");
   const runRef = useRef<() => void>(() => {});
+  const pv = usePreview("sql", "SQL (SQLite)", "query.sql");
   const run = useCallback(() => runRef.current(), []);
   const onChange = useCallback((v: string) => setCode(v), []);
 
   const append = useCallback((tone: "o" | "e" | "r" | "h" | "m" | "w", text: string) => {
     setItems((prev) => [...prev, { id: uid(), kind: "text", tone, text }]);
   }, []);
+
+  useEffect(() => {
+    pv.push({
+      code: code,
+      items,
+      state: derivePreviewState({
+        busy: busy,
+        waiting: false,
+        failed: status === "err",
+        hasOutput: items.length > 0,
+      }),
+      label,
+      elapsed: busy ? undefined : elapsed,
+      note: "SQL brauzerdə (SQLite/WebAssembly) icra olunur.",
+    });
+  }, [code, items, busy, false, status, label, elapsed, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openPreview = useCallback(() => {
+    const ok = pv.open({ code: code, items, state: "idle", label: "Gözləyir" });
+    if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
+  }, [pv, code, items]);
 
   useEffect(() => {
     const saved = loadStr("sql.code", "");
@@ -111,6 +129,10 @@ export function SqlLab() {
     if (!ready) return;
     const sql = selection.current.trim() || code;
     if (!sql.trim()) return;
+    if (pv.autoOpen) {
+      const ok = pv.open({ code: sql, items: [], state: "running", label: "İcra olunur…" });
+      if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
+    }
     setBusy(true);
     setItems([]);
     setStatus("run");
@@ -122,6 +144,8 @@ export function SqlLab() {
     }, 120);
     sqlRuntime.run(sql);
   };
+
+  const files = useMemo(() => simpleFiles("query.sql", code), [code]);
 
   return (
     <AppShell
@@ -167,15 +191,20 @@ export function SqlLab() {
           <Copy className="size-3.5" />
           Kopyala
         </Button>
-        <Button size="sm" disabled={!ready || busy} onClick={() => sqlRuntime.exportDb()}>
-          <Download className="size-3.5" />
-          .sqlite
-        </Button>
-        <Button
-          size="sm"
-          disabled={!ready || busy}
-          onClick={() => sqlRuntime.reset()}
-        >
+        <DownloadMenu
+          lang="sql"
+          zipName="sql-layihe"
+          files={files}
+          extra={[
+            {
+              label: "nibrascode.sqlite (baza faylı)",
+              disabled: !ready || busy,
+              onSelect: () => sqlRuntime.exportDb(),
+            },
+          ]}
+        />
+        <PreviewControls auto={pv.autoOpen} onAuto={pv.setAutoOpen} onOpen={openPreview} />
+        <Button size="sm" disabled={!ready || busy} onClick={() => sqlRuntime.reset()}>
           <RotateCcw className="size-3.5" />
           DB sıfırla
         </Button>
@@ -189,13 +218,14 @@ export function SqlLab() {
           <Eraser className="size-3.5" />
           Təmizlə
         </Button>
-        <span className="ml-auto hidden text-xs text-subtle sm:block">
-          {elapsed || "limitsiz"}
-        </span>
+        <span className="ml-auto hidden text-xs text-subtle sm:block">{elapsed || "limitsiz"}</span>
       </ToolRow>
       <Split orientation="horizontal" className="min-h-0 flex-1 max-md:hidden">
         <Panel defaultSize="22%" minSize="16%" className="bg-surface">
-          <Schema tables={tables} onInsert={(s) => setCode((c) => c + (c.endsWith("\n") ? "" : "\n") + s)} />
+          <Schema
+            tables={tables}
+            onInsert={(s) => setCode((c) => c + (c.endsWith("\n") ? "" : "\n") + s)}
+          />
         </Panel>
         <Handle className="w-1.5" />
         <Panel defaultSize="78%" minSize="40%">
@@ -221,13 +251,7 @@ export function SqlLab() {
   );
 }
 
-function Schema({
-  tables,
-  onInsert,
-}: {
-  tables: SqlTable[];
-  onInsert: (sql: string) => void;
-}) {
+function Schema({ tables, onInsert }: { tables: SqlTable[]; onInsert: (sql: string) => void }) {
   return (
     <div className="h-full overflow-auto p-3">
       <p className="mb-3 text-[11px] uppercase tracking-wide text-subtle">Cədvəllər</p>

@@ -3,28 +3,21 @@ import { CodeEditor, type EditorDiagnostic } from "@/components/code-editor";
 import { ConsolePane, type LogItem, type Tone } from "@/components/console-pane";
 import { Button } from "@/components/ui/button";
 import { hintForJsError, lintWebDoc, type HtmlIssue, type HtmlPane } from "@/lib/html-lint";
+import { DownloadMenu } from "@/components/download-menu";
+import { PreviewControls } from "@/components/preview-controls";
+import { htmlProjectFiles, htmlSingleFile } from "@/lib/project-files";
+import { usePreview } from "@/lib/use-preview";
 import {
   buildHtmlDoc,
-  download,
   HTML_PREVIEW_ALLOW,
+  HTML_PREVIEW_SANDBOX,
   HTML_SAMPLES,
-  htmlBlobUrl,
   loadJSON,
   looksLikeHtml,
-  openHtmlPreview,
   saveJSON,
 } from "@/lib/studio";
 import { cn, uid } from "@/lib/utils";
-import {
-  Copy,
-  Download,
-  Eraser,
-  ExternalLink,
-  Monitor,
-  Play,
-  Smartphone,
-  Tablet,
-} from "lucide-react";
+import { Copy, Eraser, ExternalLink, Monitor, Play, Smartphone, Tablet } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Split, Panel, Handle } from "@/components/split";
 import { toast } from "sonner";
@@ -56,7 +49,7 @@ export function HtmlLab() {
   const [narrow, setNarrow] = useState(false);
   const [logs, setLogs] = useState<LogItem[]>([]);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const blobRef = useRef<string | null>(null);
+  const pv = usePreview("html", "HTML / CSS", "index.html");
 
   const append = useCallback((tone: Tone, text: string) => {
     setLogs((prev) => {
@@ -87,37 +80,14 @@ export function HtmlLab() {
   }, []);
 
   const built = useMemo(() => buildHtmlDoc(doc.html, doc.css, doc.js), [doc]);
-  const bridged = useMemo(
-    () => buildHtmlDoc(doc.html, doc.css, doc.js, { bridge: true }),
-    [doc],
-  );
-  const staticIssues = useMemo(
-    () => lintWebDoc(doc.html, doc.css, doc.js),
-    [doc],
-  );
+  const bridged = useMemo(() => buildHtmlDoc(doc.html, doc.css, doc.js, { bridge: true }), [doc]);
+  const staticIssues = useMemo(() => lintWebDoc(doc.html, doc.css, doc.js), [doc]);
 
   useEffect(() => {
     setRuntime([]);
     const id = window.setTimeout(() => setLive(bridged), 280);
     return () => window.clearTimeout(id);
   }, [bridged]);
-
-  useEffect(() => {
-    const el = iframeRef.current;
-    if (!el) return;
-    const url = htmlBlobUrl(live);
-    const prev = blobRef.current;
-    blobRef.current = url;
-    el.removeAttribute("sandbox");
-    el.src = url;
-    if (prev) URL.revokeObjectURL(prev);
-  }, [live]);
-
-  useEffect(() => {
-    return () => {
-      if (blobRef.current) URL.revokeObjectURL(blobRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     function onMsg(e: MessageEvent) {
@@ -181,23 +151,35 @@ export function HtmlLab() {
     setStatus(issues.length ? "err" : "ok");
   }, [issues.length]);
 
+  const snapshot = useCallback(
+    (html: string, clean: string) => ({
+      code: clean,
+      html,
+      state: "done" as const,
+      label: "Hazırdır",
+    }),
+    [],
+  );
+
+  // keep an opened preview page in sync with edits
+  useEffect(() => {
+    pv.push(snapshot(bridged, built));
+  }, [bridged, built, snapshot, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const openFree = useCallback(() => {
-    const ok = openHtmlPreview(built);
-    if (!ok) toast("Yeni səhifə bloklandı — önizləmə burada göstərilir");
-    else toast("Yeni səhifə açıldı — tam açıq, məhdudiyyət yoxdur");
-  }, [built]);
+    const ok = pv.open(snapshot(bridged, built));
+    if (!ok)
+      toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin. Önizləmə burada göstərilir.");
+  }, [pv, snapshot, bridged, built]);
 
   const onRun = useCallback(() => {
     setLogs([]);
     setRuntime([]);
     setLive(bridged);
-    openFree();
-  }, [bridged, openFree]);
+    if (pv.autoOpen) openFree();
+  }, [bridged, openFree, pv.autoOpen]);
 
-  const onChange = useCallback(
-    (v: string) => setDoc((d) => ({ ...d, [tab]: v })),
-    [tab],
-  );
+  const onChange = useCallback((v: string) => setDoc((d) => ({ ...d, [tab]: v })), [tab]);
 
   const jumpTo = useCallback((issue: HtmlIssue) => {
     setTab(issue.pane);
@@ -212,8 +194,11 @@ export function HtmlLab() {
       append("m", `$ ${v}\n`);
       if (looksLikeHtml(v)) {
         const page = /<html[\s>]/i.test(v) ? v : buildHtmlDoc(v, "", "");
-        const ok = openHtmlPreview(page);
-        append("r", ok ? "→ yeni səhifədə açıldı (tam açıq)\n" : "→ popup bloklandı\n");
+        const ok = pv.open(snapshot(buildHtmlDoc(page, "", "", { bridge: true }), page));
+        append(
+          "r",
+          ok ? "→ yeni səhifədə açıldı\n" : "→ pop-up bloklandı — brauzerdə icazə verin\n",
+        );
         return;
       }
       const win = iframeRef.current?.contentWindow;
@@ -223,9 +208,11 @@ export function HtmlLab() {
       }
       win.postMessage({ source: "nibras-parent", t: "eval", code: v }, "*");
     },
-    [append],
+    [append, pv, snapshot],
   );
 
+  const zipFiles = useMemo(() => htmlProjectFiles(doc), [doc]);
+  const files = useMemo(() => [htmlSingleFile(doc), ...zipFiles.slice(1)], [doc, zipFiles]);
   const current = doc[tab];
   const lang = TABS.find((t) => t.id === tab)!.lang;
   const diagnostics: EditorDiagnostic[] = useMemo(
@@ -242,7 +229,12 @@ export function HtmlLab() {
       status={status}
       statusLabel={issues.length ? `${issues.length} xəta` : "Tam açıq önizləmə"}
       actions={
-        <Button variant="default" size="lg" className="min-w-[118px] flex-1 md:flex-none" onClick={onRun}>
+        <Button
+          variant="default"
+          size="lg"
+          className="min-w-[118px] flex-1 md:flex-none"
+          onClick={onRun}
+        >
           <Play className="size-3.5" />
           Başlat
         </Button>
@@ -274,10 +266,7 @@ export function HtmlLab() {
           <Copy className="size-3.5" />
           Kopyala
         </Button>
-        <Button size="sm" onClick={() => download("index.html", built, "text/html")}>
-          <Download className="size-3.5" />
-          .html
-        </Button>
+        <DownloadMenu lang="html" zipName="html-layihe" files={files} zipFiles={zipFiles} />
         <Button
           size="sm"
           onClick={() => {
@@ -288,10 +277,7 @@ export function HtmlLab() {
           <Eraser className="size-3.5" />
           Təmizlə
         </Button>
-        <Button size="sm" onClick={openFree}>
-          <ExternalLink className="size-3.5" />
-          Yeni səhifə
-        </Button>
+        <PreviewControls auto={pv.autoOpen} onAuto={pv.setAutoOpen} onOpen={openFree} />
         <div className="ml-auto hidden items-center gap-1 sm:flex">
           {(
             [
@@ -328,9 +314,7 @@ export function HtmlLab() {
                 )}
               >
                 {t.label}
-                {n > 0 ? (
-                  <span className="ml-1.5 text-xs text-danger">{n}</span>
-                ) : null}
+                {n > 0 ? <span className="ml-1.5 text-xs text-danger">{n}</span> : null}
               </button>
             );
           })}
@@ -375,6 +359,8 @@ export function HtmlLab() {
                       <iframe
                         ref={iframeRef}
                         title="Nəticə"
+                        sandbox={HTML_PREVIEW_SANDBOX}
+                        srcDoc={live}
                         allow={HTML_PREVIEW_ALLOW}
                         allowFullScreen
                         referrerPolicy="no-referrer"
@@ -435,9 +421,7 @@ export function HtmlLab() {
                     <span className="font-mono text-[13px] text-danger">
                       ✖ {PANE_LABEL[it.pane]} · sətir {it.line}: {it.message}
                     </span>
-                    {it.hint ? (
-                      <span className="text-xs text-warn">Səbəb: {it.hint}</span>
-                    ) : null}
+                    {it.hint ? <span className="text-xs text-warn">Səbəb: {it.hint}</span> : null}
                   </button>
                 </li>
               ))}

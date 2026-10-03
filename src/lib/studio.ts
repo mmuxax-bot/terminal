@@ -1,4 +1,4 @@
-export type LangId = "python" | "html" | "javascript" | "sql" | "c";
+export type LangId = "python" | "html" | "javascript" | "sql" | "c" | "more";
 
 export type LangMeta = {
   id: LangId;
@@ -55,6 +55,15 @@ export const LANGUAGES: LangMeta[] = [
     file: "main.c",
     blurb: "GCC və Clang",
     detail: "Uzaq sandbox compiler, stdin və flag-lər.",
+  },
+  {
+    id: "more",
+    path: "/more",
+    label: "Digər dillər",
+    short: "DİGƏR",
+    file: "main.cpp",
+    blurb: "C++, Java, PHP, Go, Rust, Ruby…",
+    detail: "20-yə yaxın dil — uzaq sandbox compiler ilə icra olunur.",
   },
 ];
 
@@ -387,6 +396,8 @@ export const SQL_HINTS: [RegExp, string][] = [
   [/ambiguous/i, "Sütun adı bir neçə cədvəldə var — cədvəl adı ilə yazın (t.ad)."],
 ];
 
+import { mimeFor, saveBlob, textBlob } from "@/lib/files";
+
 const PREFIX = "nibrascode.studio.";
 
 export function loadStr(key: string, fallback: string) {
@@ -422,21 +433,25 @@ export function saveJSON(key: string, value: unknown) {
   }
 }
 
-export function download(filename: string, text: string, mime: string) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([text], { type: mime }));
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
+export function download(filename: string, text: string, mime?: string) {
+  void saveBlob(filename, textBlob(text, mime ?? mimeFor(filename)));
 }
 
 export function downloadBytes(filename: string, data: Uint8Array, mime: string) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([new Uint8Array(data)], { type: mime }));
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  void saveBlob(filename, new Blob([new Uint8Array(data)], { type: mime }));
 }
+
+/** Sandbox for user-written pages: scripts run, but no access to this site's storage/cookies. */
+export const HTML_PREVIEW_SANDBOX = [
+  "allow-scripts",
+  "allow-forms",
+  "allow-modals",
+  "allow-popups",
+  "allow-popups-to-escape-sandbox",
+  "allow-downloads",
+  "allow-pointer-lock",
+  "allow-presentation",
+].join(" ");
 
 export const HTML_PREVIEW_ALLOW = [
   "accelerometer *",
@@ -466,6 +481,24 @@ export const HTML_PREVIEW_ALLOW = [
 
 const HTML_BRIDGE = `<script data-nibras-bridge>
 (function(){
+  // The preview runs in a sandboxed (opaque-origin) frame: give pages an in-memory
+  // localStorage/sessionStorage so ordinary apps (todo lists, games) keep working.
+  function memStore(){
+    var m = {};
+    return {
+      getItem: function(k){ return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : null; },
+      setItem: function(k, v){ m[String(k)] = String(v); },
+      removeItem: function(k){ delete m[k]; },
+      clear: function(){ m = {}; },
+      key: function(i){ return Object.keys(m)[i] || null; },
+      get length(){ return Object.keys(m).length; }
+    };
+  }
+  ["localStorage", "sessionStorage"].forEach(function(n){
+    try { void window[n].length; } catch (e) {
+      try { Object.defineProperty(window, n, { value: memStore(), configurable: true }); } catch (e2) {}
+    }
+  });
   function send(d){
     try { parent.postMessage(Object.assign({source:"nibras-html"}, d), "*"); } catch (e) {}
   }
@@ -544,11 +577,18 @@ export function buildHtmlDoc(
   html: string,
   css: string,
   js: string,
-  opts?: { bridge?: boolean },
+  opts?: { bridge?: boolean; external?: boolean },
 ) {
-  const st = css.trim() ? `<style>\n${css}\n</style>` : "";
+  // external: reference style.css / script.js (used for the ZIP project layout)
+  const st = css.trim()
+    ? opts?.external
+      ? `<link rel="stylesheet" href="style.css">`
+      : `<style>\n${css}\n</style>`
+    : "";
   const sc = js.trim()
-    ? `<script>\n${escapeScript(js)}\n//# sourceURL=user.js\n<\/script>`
+    ? opts?.external
+      ? `<script src="script.js"></script>`
+      : `<script>\n${escapeScript(js)}\n//# sourceURL=user.js\n</script>`
     : "";
   const br = opts?.bridge ? HTML_BRIDGE : "";
   if (/<html[\s>]/i.test(html)) {
@@ -596,38 +636,7 @@ export function looksLikeHtml(src: string) {
   return t.startsWith("<") && /<\/[a-z][\w:-]*>/i.test(t);
 }
 
-export function openHtmlPreview(html: string): boolean {
-  try {
-    saveStr("html.preview", html);
-  } catch {
-    /* quota */
-  }
-  try {
-    sessionStorage.setItem("nibrascode.studio.html.preview", html);
-  } catch {
-    /* quota */
-  }
-  try {
-    const url = htmlBlobUrl(html);
-    const w = window.open(url, "_blank");
-    window.setTimeout(() => URL.revokeObjectURL(url), 180_000);
-    if (w) {
-      try {
-        w.opener = null;
-      } catch {
-        /* ignore */
-      }
-      return true;
-    }
-  } catch {
-    /* blocked */
-  }
-  try {
-    const w = window.open("/html/preview", "_blank");
-    if (w) return true;
-  } catch {
-    /* blocked */
-  }
-  window.location.assign("/html/preview");
-  return true;
+/** Remove the console bridge so the document can be saved / downloaded cleanly. */
+export function stripBridge(doc: string) {
+  return doc.replace(/<script data-nibras-bridge>[\s\S]*?<\/script>\n?/, "");
 }

@@ -62,57 +62,7 @@ export function ConsolePane({
       {header}
       <div className="min-h-0 flex-1 overflow-auto px-4 py-3 font-mono text-[13px] leading-relaxed">
         {items.length === 0 && !waiting ? <p className="text-subtle">{empty}</p> : null}
-        {items.map((it) => {
-          if (it.kind === "text") {
-            return (
-              <span key={it.id} className={cn("whitespace-pre-wrap break-words", TONE[it.tone])}>
-                {it.text}
-              </span>
-            );
-          }
-          if (it.kind === "img") {
-            return (
-              <img
-                key={it.id}
-                src={it.src}
-                alt="Qrafik"
-                className="my-3 max-w-full rounded-md border border-border"
-              />
-            );
-          }
-          return (
-            <div key={it.id} className="my-3 overflow-auto rounded-md border border-border">
-              <table className="console-table">
-                <thead>
-                  <tr>
-                    {it.cols.map((c) => (
-                      <th key={c}>{c}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {it.rows.map((row, i) => (
-                    <tr key={i}>
-                      {row.map((v, j) => (
-                        <td
-                          key={j}
-                          className={
-                            v === null ? "nil" : typeof v === "number" ? "num" : undefined
-                          }
-                        >
-                          {v === null ? "NULL" : String(v).slice(0, 400)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-                <caption>
-                  {it.rows.length} sətir{it.more ? " (limitə çatdı)" : ""}
-                </caption>
-              </table>
-            </div>
-          );
-        })}
+        <LogList items={items} />
         {showInput ? (
           <form onSubmit={submit} className="mt-1 flex items-center gap-2">
             <span className="shrink-0 text-accent">{waiting ? "›" : "$"}</span>
@@ -128,5 +78,61 @@ export function ConsolePane({
         <div ref={end} />
       </div>
     </div>
+  );
+}
+
+export function LogList({ items }: { items: LogItem[] }) {
+  return (
+    <>
+      {items.map((it) => {
+        if (it.kind === "text") {
+          return (
+            <span key={it.id} className={cn("whitespace-pre-wrap break-words", TONE[it.tone])}>
+              {it.text}
+            </span>
+          );
+        }
+        if (it.kind === "img") {
+          return (
+            <img
+              key={it.id}
+              src={it.src}
+              alt="Qrafik"
+              className="my-3 max-w-full rounded-md border border-border"
+            />
+          );
+        }
+        return (
+          <div key={it.id} className="my-3 overflow-auto rounded-md border border-border">
+            <table className="console-table">
+              <thead>
+                <tr>
+                  {it.cols.map((c) => (
+                    <th key={c}>{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {it.rows.map((row, i) => (
+                  <tr key={i}>
+                    {row.map((v, j) => (
+                      <td
+                        key={j}
+                        className={v === null ? "nil" : typeof v === "number" ? "num" : undefined}
+                      >
+                        {v === null ? "NULL" : String(v).slice(0, 400)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+              <caption>
+                {it.rows.length} sətir{it.more ? " (limitə çatdı)" : ""}
+              </caption>
+            </table>
+          </div>
+        );
+      })}
+    </>
   );
 }

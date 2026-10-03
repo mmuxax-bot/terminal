@@ -13,9 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CRouteImport } from './routes/c'
 import { Route as HtmlRouteImport } from './routes/html'
 import { Route as JavascriptRouteImport } from './routes/javascript'
+import { Route as MoreRouteImport } from './routes/more'
+import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as PythonRouteImport } from './routes/python'
 import { Route as SqlRouteImport } from './routes/sql'
-import { Route as HtmlPreviewRouteImport } from './routes/html.preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -37,6 +38,16 @@ const JavascriptRoute = JavascriptRouteImport.update({
   path: '/javascript',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MoreRoute = MoreRouteImport.update({
+  id: '/more',
+  path: '/more',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewRoute = PreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PythonRoute = PythonRouteImport.update({
   id: '/python',
   path: '/python',
@@ -47,63 +58,78 @@ const SqlRoute = SqlRouteImport.update({
   path: '/sql',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HtmlPreviewRoute = HtmlPreviewRouteImport.update({
-  id: '/preview',
-  path: '/preview',
-  getParentRoute: () => HtmlRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/c': typeof CRoute
-  '/html': typeof HtmlRouteWithChildren
+  '/html': typeof HtmlRoute
   '/javascript': typeof JavascriptRoute
+  '/more': typeof MoreRoute
+  '/preview': typeof PreviewRoute
   '/python': typeof PythonRoute
   '/sql': typeof SqlRoute
-  '/html/preview': typeof HtmlPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/c': typeof CRoute
-  '/html': typeof HtmlRouteWithChildren
+  '/html': typeof HtmlRoute
   '/javascript': typeof JavascriptRoute
+  '/more': typeof MoreRoute
+  '/preview': typeof PreviewRoute
   '/python': typeof PythonRoute
   '/sql': typeof SqlRoute
-  '/html/preview': typeof HtmlPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/c': typeof CRoute
-  '/html': typeof HtmlRouteWithChildren
+  '/html': typeof HtmlRoute
   '/javascript': typeof JavascriptRoute
+  '/more': typeof MoreRoute
+  '/preview': typeof PreviewRoute
   '/python': typeof PythonRoute
   '/sql': typeof SqlRoute
-  '/html/preview': typeof HtmlPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/c' | '/html' | '/javascript' | '/python' | '/sql' | '/html/preview'
+    | '/'
+    | '/c'
+    | '/html'
+    | '/javascript'
+    | '/more'
+    | '/preview'
+    | '/python'
+    | '/sql'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/c' | '/html' | '/javascript' | '/python' | '/sql' | '/html/preview'
+    | '/'
+    | '/c'
+    | '/html'
+    | '/javascript'
+    | '/more'
+    | '/preview'
+    | '/python'
+    | '/sql'
   id:
     | '__root__'
     | '/'
     | '/c'
     | '/html'
     | '/javascript'
+    | '/more'
+    | '/preview'
     | '/python'
     | '/sql'
-    | '/html/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CRoute: typeof CRoute
-  HtmlRoute: typeof HtmlRouteWithChildren
+  HtmlRoute: typeof HtmlRoute
   JavascriptRoute: typeof JavascriptRoute
+  MoreRoute: typeof MoreRoute
+  PreviewRoute: typeof PreviewRoute
   PythonRoute: typeof PythonRoute
   SqlRoute: typeof SqlRoute
 }
@@ -138,6 +164,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JavascriptRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/more': {
+      id: '/more'
+      path: '/more'
+      fullPath: '/more'
+      preLoaderRoute: typeof MoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview': {
+      id: '/preview'
+      path: '/preview'
+      fullPath: '/preview'
+      preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/python': {
       id: '/python'
       path: '/python'
@@ -152,31 +192,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SqlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/html/preview': {
-      id: '/html/preview'
-      path: '/preview'
-      fullPath: '/html/preview'
-      preLoaderRoute: typeof HtmlPreviewRouteImport
-      parentRoute: typeof HtmlRoute
-    }
   }
 }
-
-interface HtmlRouteChildren {
-  HtmlPreviewRoute: typeof HtmlPreviewRoute
-}
-
-const HtmlRouteChildren: HtmlRouteChildren = {
-  HtmlPreviewRoute: HtmlPreviewRoute,
-}
-
-const HtmlRouteWithChildren = HtmlRoute._addFileChildren(HtmlRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CRoute: CRoute,
-  HtmlRoute: HtmlRouteWithChildren,
+  HtmlRoute: HtmlRoute,
   JavascriptRoute: JavascriptRoute,
+  MoreRoute: MoreRoute,
+  PreviewRoute: PreviewRoute,
   PythonRoute: PythonRoute,
   SqlRoute: SqlRoute,
 }

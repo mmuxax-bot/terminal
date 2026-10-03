@@ -2,17 +2,15 @@ import { AppShell, NativeSelect, ToolRow } from "@/components/app-shell";
 import { CodeEditor, type EditorDiagnostic } from "@/components/code-editor";
 import { ConsolePane, type LogItem } from "@/components/console-pane";
 import { Button } from "@/components/ui/button";
+import { DownloadMenu } from "@/components/download-menu";
+import { PreviewControls } from "@/components/preview-controls";
+import { derivePreviewState } from "@/lib/preview-channel";
+import { simpleFiles } from "@/lib/project-files";
+import { usePreview } from "@/lib/use-preview";
 import { pythonRuntime, type PyMsg } from "@/lib/python-runtime";
-import {
-  download,
-  loadStr,
-  PY_HINTS,
-  PY_SAMPLES,
-  saveJSON,
-  saveStr,
-} from "@/lib/studio";
+import { loadStr, PY_HINTS, PY_SAMPLES, saveJSON, saveStr } from "@/lib/studio";
 import { uid } from "@/lib/utils";
-import { Copy, Download, Eraser, Play, Square } from "lucide-react";
+import { Copy, Eraser, Play, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Split, Panel, Handle } from "@/components/split";
 import { toast } from "sonner";
@@ -29,9 +27,7 @@ export function PythonLab() {
   const [status, setStatus] = useState<"load" | "ok" | "run" | "err">(
     pythonRuntime.ready ? "ok" : "load",
   );
-  const [label, setLabel] = useState(
-    pythonRuntime.ready ? "Python hazırdır" : "Python yüklənir…",
-  );
+  const [label, setLabel] = useState(pythonRuntime.ready ? "Python hazırdır" : "Python yüklənir…");
   const [items, setItems] = useState<LogItem[]>([]);
   const [elapsed, setElapsed] = useState("");
   const [diags, setDiags] = useState<EditorDiagnostic[]>([]);
@@ -43,10 +39,32 @@ export function PythonLab() {
   const timer = useRef<number | null>(null);
   const runRef = useRef<() => void>(() => {});
 
+  const pv = usePreview("python", "Python", "main.py");
   const run = useCallback(() => {
     runRef.current();
   }, []);
   const onChange = useCallback((v: string) => setCode(v), []);
+
+  useEffect(() => {
+    pv.push({
+      code: code,
+      items,
+      state: derivePreviewState({
+        busy: busy,
+        waiting: waiting,
+        failed: status === "err",
+        hasOutput: items.length > 0,
+      }),
+      label,
+      elapsed: busy ? undefined : elapsed,
+      note: "Python brauzerdə (Pyodide/WebAssembly) icra olunur.",
+    });
+  }, [code, items, busy, waiting, status, label, elapsed, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openPreview = useCallback(() => {
+    const ok = pv.open({ code: code, items, state: "idle", label: "Gözləyir" });
+    if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
+  }, [pv, code, items]);
 
   useEffect(() => {
     const saved = loadStr("py.code", "");
@@ -161,6 +179,10 @@ export function PythonLab() {
       return;
     }
     if (!ready) return;
+    if (pv.autoOpen) {
+      const ok = pv.open({ code, items: [], state: "running", label: "İcra olunur…" });
+      if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
+    }
     setBusy(true);
     setWaiting(false);
     setItems([]);
@@ -186,6 +208,10 @@ export function PythonLab() {
   }
 
   const sample = useMemo(() => "", []);
+  const files = useMemo(
+    () => simpleFiles("main.py", code, [{ name: "stdin.txt", content: stdin }]),
+    [code, stdin],
+  );
 
   return (
     <AppShell
@@ -235,10 +261,8 @@ export function PythonLab() {
           <Copy className="size-3.5" />
           Kopyala
         </Button>
-        <Button size="sm" onClick={() => download("main.py", code, "text/x-python")}>
-          <Download className="size-3.5" />
-          .py
-        </Button>
+        <DownloadMenu lang="python" zipName="python-layihe" files={files} />
+        <PreviewControls auto={pv.autoOpen} onAuto={pv.setAutoOpen} onOpen={openPreview} />
         <Button
           size="sm"
           onClick={() => {
@@ -255,7 +279,13 @@ export function PythonLab() {
       </ToolRow>
       <Split orientation="vertical" className="min-h-0 flex-1">
         <Panel defaultSize="62%" minSize="28%">
-          <CodeEditor lang="python" value={code} onChange={onChange} onRun={run} diagnostics={diags} />
+          <CodeEditor
+            lang="python"
+            value={code}
+            onChange={onChange}
+            onRun={run}
+            diagnostics={diags}
+          />
         </Panel>
         <Handle className="h-1.5" />
         <Panel defaultSize="38%" minSize="18%">

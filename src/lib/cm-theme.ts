@@ -7,7 +7,7 @@ import {
   type DecorationSet,
 } from "@codemirror/view";
 import { Prec, RangeSetBuilder } from "@codemirror/state";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, StreamLanguage, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 import { python } from "@codemirror/lang-python";
 import { javascript } from "@codemirror/lang-javascript";
@@ -15,10 +15,40 @@ import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { sql } from "@codemirror/lang-sql";
 import { cpp } from "@codemirror/lang-cpp";
+import { java } from "@codemirror/lang-java";
+import { php } from "@codemirror/lang-php";
+import { rust } from "@codemirror/lang-rust";
+import { go } from "@codemirror/lang-go";
+import { ruby } from "@codemirror/legacy-modes/mode/ruby";
+import { perl } from "@codemirror/legacy-modes/mode/perl";
+import { lua } from "@codemirror/legacy-modes/mode/lua";
+import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { haskell } from "@codemirror/legacy-modes/mode/haskell";
+import { r } from "@codemirror/legacy-modes/mode/r";
+import { julia } from "@codemirror/legacy-modes/mode/julia";
 import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
 import type { Extension } from "@codemirror/state";
 
-export type EditorLang = "python" | "javascript" | "html" | "css" | "sql" | "c";
+export type EditorLang =
+  | "python"
+  | "javascript"
+  | "typescript"
+  | "html"
+  | "css"
+  | "sql"
+  | "c"
+  | "cpp"
+  | "java"
+  | "php"
+  | "rust"
+  | "go"
+  | "ruby"
+  | "perl"
+  | "lua"
+  | "shell"
+  | "haskell"
+  | "r"
+  | "julia";
 
 export type EditorDiagnostic = {
   line: number;
@@ -93,7 +123,32 @@ function langExt(lang: EditorLang): Extension {
     case "sql":
       return sql();
     case "c":
+    case "cpp":
       return cpp();
+    case "typescript":
+      return javascript({ typescript: true });
+    case "java":
+      return java();
+    case "php":
+      return php();
+    case "rust":
+      return rust();
+    case "go":
+      return go();
+    case "ruby":
+      return StreamLanguage.define(ruby);
+    case "perl":
+      return StreamLanguage.define(perl);
+    case "lua":
+      return StreamLanguage.define(lua);
+    case "shell":
+      return StreamLanguage.define(shell);
+    case "haskell":
+      return StreamLanguage.define(haskell);
+    case "r":
+      return StreamLanguage.define(r);
+    case "julia":
+      return StreamLanguage.define(julia);
   }
 }
 

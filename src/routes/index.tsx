@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { LANGUAGES } from "@/lib/studio";
 import { pythonRuntime } from "@/lib/python-runtime";
 import { sqlRuntime } from "@/lib/sql-runtime";
-import { ArrowUpRight, Braces, Code2, Database, FileCode, Terminal } from "lucide-react";
+import { ArrowUpRight, Braces, Code2, Database, FileCode, Layers, Terminal } from "lucide-react";
 import { useEffect, type CSSProperties, type ComponentType } from "react";
 
 export const Route = createFileRoute("/")({
@@ -18,6 +18,7 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   javascript: Braces,
   sql: Database,
   c: Code2,
+  more: Layers,
 };
 
 function Home() {
@@ -44,13 +45,14 @@ function Home() {
         <section className="flex flex-1 flex-col justify-center py-8 sm:py-10">
           <p className="text-sm font-medium text-accent">Limitsiz brauzer IDE</p>
           <h1 className="mt-2 max-w-xl text-balance text-3xl font-medium leading-tight tracking-tight sm:text-4xl">
-            Beş dil. Bir studio.
+            Çox dil. Bir studio.
           </h1>
           <p className="mt-3 max-w-lg text-pretty text-sm leading-relaxed text-muted sm:text-base">
-            Python, HTML/CSS, JavaScript, SQL və C — kodu yazın, dərhal işə salın.
+            Python, HTML/CSS, JavaScript, SQL, C, C++, Java, PHP, Go, Rust və daha çoxu — kodu
+            yazın, nəticəni yeni səhifədə açın, telefona yükləyin.
           </p>
 
-          <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
             {LANGUAGES.map((l, i) => {
               const Icon = ICONS[l.id];
               return (
@@ -69,7 +71,9 @@ function Home() {
                         <h2 className="text-sm font-medium">{l.label}</h2>
                         <ArrowUpRight className="size-3.5 shrink-0 text-subtle transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-accent" />
                       </div>
-                      <p className="mt-0.5 truncate text-xs leading-relaxed text-muted">{l.blurb}</p>
+                      <p className="mt-0.5 truncate text-xs leading-relaxed text-muted">
+                        {l.blurb}
+                      </p>
                     </div>
                   </div>
                 </Link>
@@ -79,7 +83,8 @@ function Home() {
 
           <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-subtle">
             <li>Ctrl+Enter — işə sal</li>
-            <li>HTML terminalı yeni səhifədə açır</li>
+            <li>Nəticə yeni səhifədə açılır</li>
+            <li>Kodu telefona / ZIP kimi yüklə</li>
             <li>Avtomatik yaddaş</li>
             <li>numpy / pandas / matplotlib</li>
           </ul>

@@ -1,0 +1,39 @@
+# NibrasCode Studio
+
+Brauzer IDE: **Python, HTML/CSS, JavaScript, SQL, C** və **Digər dillər** (C++, Java, PHP, Go, Rust, Node.js, TypeScript, Ruby, Perl, Lua, Bash, Julia, R, Haskell).
+TanStack Start + Vite + Nitro (Vercel preset). UI Azərbaycan dilindədir.
+
+## Necə işləyir
+
+| Dil | İcra | Harada |
+| --- | --- | --- |
+| Python | Pyodide (WebAssembly), numpy/pandas/matplotlib | istifadəçinin brauzerində |
+| JavaScript | sandbox iframe + Web Worker | istifadəçinin brauzerində |
+| HTML / CSS / JS | `sandbox`-lu iframe (opaque origin, `allow-same-origin` yoxdur) | istifadəçinin brauzerində |
+| SQL | SQLite (sql.js, WebAssembly) | istifadəçinin brauzerində |
+| C, C++, Java, PHP, Go, Rust, Node.js, TypeScript, Ruby, Perl, Lua, Bash, Julia, R, Haskell | [Wandbox](https://wandbox.org) uzaq sandbox compiler (əvvəl brauzerdən, alınmasa `/_serverFn` ilə serverdən) | uzaq xidmət |
+
+### Nəticə yeni səhifədə
+Hər dildə **Başlat** (və ya Ctrl+Enter) nəticəni yeni `/preview?lang=…` səhifəsində açır (eyni dil üçün eyni tab təkrar istifadə olunur).
+Səhifə studio ilə canlı sinxronlaşır (BroadcastChannel + localStorage). Toolbar-dakı «Başlatda yeni səhifədə aç» ilə söndürmək, «Yeni səhifə» ilə əl ilə açmaq olar.
+HTML önizləməsi tam səhifədir (konsol paneli, yenilə, tam ekran). Digər dillərdə çıxış (mətn, cədvəl, qrafik şəkli) formatlı göstərilir.
+
+### Kodu yüklə
+Toolbar-da **Yüklə** menyusu: cari fayl(lar), «Bütün fayllar (.zip)», «Bütün dillər (.zip)», Paylaş (Web Share API varsa).
+Mobil: gizli `<a download>`; dəstəklənmirsə Web Share API (fayl) → yeni tabda açma. ZIP istənilən asılılıqsız yazılıb (`src/lib/files.ts`).
+
+## Əmrlər
+```
+npm install
+npm run dev          # http://localhost:8080
+npm run typecheck && npm run lint && npm run build
+node --experimental-strip-types --test src/lib/files.test.ts src/lib/wandbox.test.ts
+npm run e2e          # Playwright + Chrome, işləyən tətbiqə qarşı (BASE=http://localhost:8080)
+npm run verify:wandbox   # bütün «Digər dillər» nümunələrini canlı Wandbox-da yoxlayır
+```
+
+## Deploy (Vercel)
+Əlavə mühit dəyişəni **lazım deyil**. `vite.config.ts`-də `renderer: false` mütləqdir: kökdəki köhnə statik `index.html`
+Nitro tərəfindən SSR şablonu kimi götürülməsin (əks halda hər marşrut həmin səhifəni qaytarır).
+
+`t1/ … t5/` və kökdəki `index.html` ayrı statik köhnə versiyalardır (öz Vercel layihələri üçün); tətbiqə təsir etmir.
