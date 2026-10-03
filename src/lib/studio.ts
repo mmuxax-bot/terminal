@@ -54,7 +54,7 @@ export const LANGUAGES: LangMeta[] = [
     short: "C",
     file: "main.c",
     blurb: "GCC və Clang",
-    detail: "Uzaq sandbox compiler, stdin və flag-lər.",
+    detail: "Tərtib, stdin və flag-lər.",
   },
   {
     id: "more",
@@ -63,7 +63,7 @@ export const LANGUAGES: LangMeta[] = [
     short: "DİGƏR",
     file: "main.cpp",
     blurb: "C++, Java, PHP, Go, Rust, Ruby…",
-    detail: "20-yə yaxın dil — uzaq sandbox compiler ilə icra olunur.",
+    detail: "20-yə yaxın dil — kodu yaz, nəticəni yeni səhifədə aç.",
   },
 ];
 
@@ -75,7 +75,7 @@ export const EXTRA_LANGUAGES: LangMeta[] = MORE_LANGS.map((l): LangMeta => ({
   short: l.short,
   file: l.file,
   blurb: l.blurb,
-  detail: `${l.label} — uzaq sandbox compiler ilə icra olunur.`,
+  detail: `${l.label} — kodu yaz, nəticəni yeni səhifədə aç.`,
 }));
 
 export const ALL_LANGUAGES: LangMeta[] = [...LANGUAGES, ...EXTRA_LANGUAGES];

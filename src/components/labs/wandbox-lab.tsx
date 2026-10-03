@@ -25,7 +25,7 @@ export function WandboxLab({ id }: { id: MoreId }) {
   const [hydrated, setHydrated] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<"ok" | "run" | "err">("ok");
-  const [label, setLabel] = useState("Uzaq compiler");
+  const [label, setLabel] = useState("Compiler hazırdır");
   const [items, setItems] = useState<LogItem[]>([]);
   const [elapsed, setElapsed] = useState("");
   const abort = useRef<AbortController | null>(null);
@@ -69,7 +69,7 @@ export function WandboxLab({ id }: { id: MoreId }) {
       }),
       label,
       elapsed: busy ? undefined : elapsed,
-      note: `${lang.label} kodu uzaq sandbox compiler xidmətində (wandbox.org) tərtib edilib işləyir — brauzerdə yox.`,
+      note: `${lang.label} kodu tərtib edilib işlədildi.`,
     });
   }, [code, items, busy, status, label, elapsed, lang.label, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
 

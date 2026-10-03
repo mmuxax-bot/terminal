@@ -58,7 +58,7 @@ export function CLab() {
       }),
       label,
       elapsed: busy ? undefined : elapsed,
-      note: "C kodu uzaq sandbox compiler xidmətində (wandbox.org) tərtib edilib işləyir.",
+      note: "C kodu tərtib edilib işlədildi.",
     });
   }, [code, items, busy, false, status, label, elapsed, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -80,7 +80,7 @@ export function CLab() {
       })
       .catch(() => {
         setStatus("ok");
-        setLabel("Uzaq compiler");
+        setLabel("Compiler hazırdır");
       });
   }, []);
 
