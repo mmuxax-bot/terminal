@@ -1,34 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { openPreviewWindow, publishPreview, type PreviewPayload } from "@/lib/preview-channel";
-import { loadStr, saveStr } from "@/lib/studio";
+import {
+  openPreviewWindow,
+  previewPath,
+  publishPreview,
+  type PreviewPayload,
+} from "@/lib/preview-channel";
 
-type Snapshot = Omit<PreviewPayload, "v" | "lang" | "title" | "filename" | "ts">;
+export type PreviewSnapshot = Omit<PreviewPayload, "v" | "lang" | "title" | "filename" | "ts">;
 
 /**
- * Per-lab "show result in a new page" controller.
- * - `autoOpen` (persisted): Run opens/re-uses the preview tab.
- * - `open()`: opens the tab now (call inside a user gesture) and starts live sync.
- * - `push(snapshot)`: publish the latest result when a preview tab was opened.
+ * Per-lab controller for the result page (/preview). The result is shown ONLY there.
+ * - `open(snapshot)`: publish + open/reuse the tab. Call synchronously inside a click/key
+ *   handler (otherwise pop-up blockers refuse it). Sets `blocked` when the browser refuses.
+ * - `prime(snapshot)`: publish only; used by a real link (`<a target>`), which browsers never block.
+ * - `push(snapshot)`: live updates once the page was opened/primed.
  */
 export function usePreview(lang: string, title: string, filename: string) {
-  const [autoOpen, setAutoOpenState] = useState(true);
+  const [blocked, setBlocked] = useState(false);
+  const [opened, setOpened] = useState(false);
   const active = useRef(false);
   const timer = useRef<number | null>(null);
-  const latest = useRef<Snapshot | null>(null);
+  const latest = useRef<PreviewSnapshot | null>(null);
   const meta = useRef({ lang, title, filename });
   meta.current = { lang, title, filename };
 
-  useEffect(() => {
-    setAutoOpenState(loadStr("preview.auto", "1") !== "0");
-    return () => {
+  useEffect(
+    () => () => {
       if (timer.current) window.clearTimeout(timer.current);
-    };
-  }, []);
-
-  const setAutoOpen = useCallback((v: boolean) => {
-    setAutoOpenState(v);
-    saveStr("preview.auto", v ? "1" : "0");
-  }, []);
+    },
+    [],
+  );
 
   const flush = useCallback(() => {
     timer.current = null;
@@ -38,33 +39,47 @@ export function usePreview(lang: string, title: string, filename: string) {
   }, []);
 
   const push = useCallback(
-    (s: Snapshot, immediate = false) => {
+    (s: PreviewSnapshot) => {
       latest.current = s;
-      if (!active.current) return;
-      if (immediate) {
-        if (timer.current) window.clearTimeout(timer.current);
-        flush();
-      } else if (!timer.current) {
-        timer.current = window.setTimeout(flush, 150);
-      }
+      if (!active.current || timer.current) return;
+      timer.current = window.setTimeout(flush, 150);
     },
     [flush],
   );
 
-  /** Returns false when the browser blocked the new tab. */
-  const open = useCallback(
-    (snapshot?: Snapshot) => {
+  const prime = useCallback(
+    (snapshot?: PreviewSnapshot) => {
       if (snapshot) latest.current = snapshot;
       active.current = true;
-      flush(); // payload is in storage before the new tab reads it
-      const w = openPreviewWindow(meta.current.lang);
-      return Boolean(w);
+      if (timer.current) window.clearTimeout(timer.current);
+      flush();
+      setBlocked(false);
+      setOpened(true);
     },
     [flush],
+  );
+
+  const open = useCallback(
+    (snapshot?: PreviewSnapshot) => {
+      prime(snapshot);
+      const ok = Boolean(openPreviewWindow(meta.current.lang));
+      setBlocked(!ok);
+      setOpened(ok);
+      return ok;
+    },
+    [prime],
   );
 
   return useMemo(
-    () => ({ autoOpen, setAutoOpen, open, push }),
-    [autoOpen, setAutoOpen, open, push],
+    () => ({
+      open,
+      prime,
+      push,
+      blocked,
+      opened,
+      href: previewPath(lang),
+      target: `nibras-preview-${lang}`,
+    }),
+    [open, prime, push, blocked, opened, lang],
   );
 }

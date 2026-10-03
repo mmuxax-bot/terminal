@@ -1,18 +1,18 @@
 import { AppShell, NativeSelect, ToolRow } from "@/components/app-shell";
 import { CodeEditor, type EditorDiagnostic } from "@/components/code-editor";
-import { ConsolePane, type LogItem } from "@/components/console-pane";
+import { type LogItem } from "@/components/console-pane";
 import { Button } from "@/components/ui/button";
 import { DownloadMenu } from "@/components/download-menu";
-import { PreviewControls } from "@/components/preview-controls";
+import { InputBar } from "@/components/input-bar";
+import { PreviewStatus } from "@/components/preview-status";
 import { derivePreviewState } from "@/lib/preview-channel";
 import { simpleFiles } from "@/lib/project-files";
 import { usePreview } from "@/lib/use-preview";
 import { pythonRuntime, type PyMsg } from "@/lib/python-runtime";
 import { loadStr, PY_HINTS, PY_SAMPLES, saveJSON, saveStr } from "@/lib/studio";
-import { uid } from "@/lib/utils";
+import { uid, lastPrompt } from "@/lib/utils";
 import { Copy, Eraser, Play, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Split, Panel, Handle } from "@/components/split";
 import { toast } from "sonner";
 
 const SAMPLE_KEYS = Object.keys(PY_SAMPLES);
@@ -60,11 +60,6 @@ export function PythonLab() {
       note: "Python brauzerdə (Pyodide/WebAssembly) icra olunur.",
     });
   }, [code, items, busy, waiting, status, label, elapsed, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const openPreview = useCallback(() => {
-    const ok = pv.open({ code: code, items, state: "idle", label: "Gözləyir" });
-    if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
-  }, [pv, code, items]);
 
   useEffect(() => {
     const saved = loadStr("py.code", "");
@@ -179,10 +174,8 @@ export function PythonLab() {
       return;
     }
     if (!ready) return;
-    if (pv.autoOpen) {
-      const ok = pv.open({ code, items: [], state: "running", label: "İcra olunur…" });
-      if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
-    }
+    if (!pv.open({ code, items: [], state: "running", label: "İcra olunur…" }))
+      toast("Brauzer yeni səhifəni blokladı — «Önizləməni aç» düyməsinə basın.");
     setBusy(true);
     setWaiting(false);
     setItems([]);
@@ -262,7 +255,6 @@ export function PythonLab() {
           Kopyala
         </Button>
         <DownloadMenu lang="python" zipName="python-layihe" files={files} />
-        <PreviewControls auto={pv.autoOpen} onAuto={pv.setAutoOpen} onOpen={openPreview} />
         <Button
           size="sm"
           onClick={() => {
@@ -277,57 +269,41 @@ export function PythonLab() {
           Ctrl+Enter · {elapsed || "limitsiz"}
         </span>
       </ToolRow>
-      <Split orientation="vertical" className="min-h-0 flex-1">
-        <Panel defaultSize="62%" minSize="28%">
-          <CodeEditor
-            lang="python"
-            value={code}
-            onChange={onChange}
-            onRun={run}
-            diagnostics={diags}
-          />
-        </Panel>
-        <Handle className="h-1.5" />
-        <Panel defaultSize="38%" minSize="18%">
-          <div className="flex h-full min-h-0 flex-col">
-            <details className="shrink-0 border-b border-border bg-surface px-3 py-2">
-              <summary className="cursor-pointer text-sm text-muted">input() dəyərləri</summary>
-              <textarea
-                value={stdin}
-                onChange={(e) => setStdin(e.target.value)}
-                rows={3}
-                placeholder="Hər sətirdə bir dəyər — və ya konsolda canlı cavab verin"
-                className="mt-2 w-full resize-y rounded-md border border-border bg-bg p-2 font-mono text-xs text-fg outline-none"
-              />
-            </details>
-            <ConsolePane
-              className="min-h-0 flex-1"
-              items={items}
-              waiting={waiting}
-              onSubmitInput={onInput}
-              empty="Kodu başladanda nəticə burada görünəcək."
-              header={
-                <div className="flex h-10 shrink-0 items-center justify-between border-b border-border px-3 text-[11px] uppercase tracking-wide text-subtle">
-                  <span>Terminal</span>
-                  <button
-                    className="text-muted hover:text-fg"
-                    onClick={() => {
-                      const t = items
-                        .filter((i) => i.kind === "text")
-                        .map((i) => (i.kind === "text" ? i.text : ""))
-                        .join("");
-                      void navigator.clipboard.writeText(t);
-                      toast("Çıxış kopyalandı");
-                    }}
-                  >
-                    Kopyala
-                  </button>
-                </div>
-              }
-            />
-          </div>
-        </Panel>
-      </Split>
+      <PreviewStatus
+        href={pv.href}
+        target={pv.target}
+        state={derivePreviewState({
+          busy: busy,
+          waiting: waiting,
+          failed: status === "err",
+          hasOutput: items.length > 0,
+        })}
+        opened={pv.opened}
+        blocked={pv.blocked}
+        onPrime={() => pv.prime()}
+      />
+      <div className="min-h-0 flex-1">
+        <CodeEditor
+          lang="python"
+          value={code}
+          onChange={onChange}
+          onRun={run}
+          diagnostics={diags}
+        />
+      </div>
+      <details className="shrink-0 border-t border-border bg-surface px-3 py-2">
+        <summary className="flex min-h-9 cursor-pointer items-center text-sm text-muted">
+          input() dəyərləri
+        </summary>
+        <textarea
+          value={stdin}
+          onChange={(e) => setStdin(e.target.value)}
+          rows={3}
+          placeholder="Hər sətirdə bir dəyər — və ya işləyərkən cavab verin"
+          className="mt-2 w-full resize-y rounded-md border border-border bg-bg p-2 font-mono text-xs text-fg outline-none"
+        />
+      </details>
+      {waiting ? <InputBar prompt={lastPrompt(items)} onSubmit={onInput} /> : null}
     </AppShell>
   );
 }

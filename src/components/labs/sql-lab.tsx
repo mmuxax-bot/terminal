@@ -1,9 +1,9 @@
 import { AppShell, NativeSelect, ToolRow } from "@/components/app-shell";
 import { CodeEditor } from "@/components/code-editor";
-import { ConsolePane, type LogItem } from "@/components/console-pane";
+import { type LogItem } from "@/components/console-pane";
 import { Button } from "@/components/ui/button";
 import { DownloadMenu } from "@/components/download-menu";
-import { PreviewControls } from "@/components/preview-controls";
+import { PreviewStatus } from "@/components/preview-status";
 import { derivePreviewState } from "@/lib/preview-channel";
 import { simpleFiles } from "@/lib/project-files";
 import { usePreview } from "@/lib/use-preview";
@@ -56,11 +56,6 @@ export function SqlLab() {
       note: "SQL brauzerdə (SQLite/WebAssembly) icra olunur.",
     });
   }, [code, items, busy, false, status, label, elapsed, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const openPreview = useCallback(() => {
-    const ok = pv.open({ code: code, items, state: "idle", label: "Gözləyir" });
-    if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
-  }, [pv, code, items]);
 
   useEffect(() => {
     const saved = loadStr("sql.code", "");
@@ -129,10 +124,8 @@ export function SqlLab() {
     if (!ready) return;
     const sql = selection.current.trim() || code;
     if (!sql.trim()) return;
-    if (pv.autoOpen) {
-      const ok = pv.open({ code: sql, items: [], state: "running", label: "İcra olunur…" });
-      if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
-    }
+    if (!pv.open({ code: sql, items: [], state: "running", label: "İcra olunur…" }))
+      toast("Brauzer yeni səhifəni blokladı — «Önizləməni aç» düyməsinə basın.");
     setBusy(true);
     setItems([]);
     setStatus("run");
@@ -203,7 +196,6 @@ export function SqlLab() {
             },
           ]}
         />
-        <PreviewControls auto={pv.autoOpen} onAuto={pv.setAutoOpen} onOpen={openPreview} />
         <Button size="sm" disabled={!ready || busy} onClick={() => sqlRuntime.reset()}>
           <RotateCcw className="size-3.5" />
           DB sıfırla
@@ -220,6 +212,19 @@ export function SqlLab() {
         </Button>
         <span className="ml-auto hidden text-xs text-subtle sm:block">{elapsed || "limitsiz"}</span>
       </ToolRow>
+      <PreviewStatus
+        href={pv.href}
+        target={pv.target}
+        state={derivePreviewState({
+          busy: busy,
+          waiting: false,
+          failed: status === "err",
+          hasOutput: items.length > 0,
+        })}
+        opened={pv.opened}
+        blocked={pv.blocked}
+        onPrime={() => pv.prime()}
+      />
       <Split orientation="horizontal" className="min-h-0 flex-1 max-md:hidden">
         <Panel defaultSize="22%" minSize="16%" className="bg-surface">
           <Schema
@@ -229,23 +234,11 @@ export function SqlLab() {
         </Panel>
         <Handle className="w-1.5" />
         <Panel defaultSize="78%" minSize="40%">
-          <EditorAndOut
-            code={code}
-            onChange={onChange}
-            run={run}
-            items={items}
-            onSelect={selection}
-          />
+          <EditorOnly code={code} onChange={onChange} run={run} onSelect={selection} />
         </Panel>
       </Split>
       <div className="flex min-h-0 flex-1 flex-col md:hidden">
-        <EditorAndOut
-          code={code}
-          onChange={onChange}
-          run={run}
-          items={items}
-          onSelect={selection}
-        />
+        <EditorOnly code={code} onChange={onChange} run={run} onSelect={selection} />
       </div>
     </AppShell>
   );
@@ -279,43 +272,28 @@ function Schema({ tables, onInsert }: { tables: SqlTable[]; onInsert: (sql: stri
   );
 }
 
-function EditorAndOut({
+function EditorOnly({
   code,
   onChange,
   run,
-  items,
   onSelect,
 }: {
   code: string;
   onChange: (v: string) => void;
   run: () => void;
-  items: LogItem[];
   onSelect: { current: string };
 }) {
   return (
-    <Split orientation="vertical" className="h-full min-h-0">
-      <Panel defaultSize="55%" minSize="28%">
-        <div
-          className="h-full"
-          onMouseUp={() => {
-            onSelect.current = window.getSelection()?.toString() ?? "";
-          }}
-        >
-          <CodeEditor lang="sql" value={code} onChange={onChange} onRun={run} />
-        </div>
-      </Panel>
-      <Handle className="h-1.5" />
-      <Panel defaultSize="45%" minSize="18%">
-        <ConsolePane
-          items={items}
-          empty="Sorğunu yazıb Başlat basın. Mətn seçilibsə yalnız seçilmiş sorğu işləyir."
-          header={
-            <div className="flex h-10 shrink-0 items-center justify-between border-b border-border px-3 text-[11px] uppercase tracking-wide text-subtle">
-              <span>Nəticə</span>
-            </div>
-          }
-        />
-      </Panel>
-    </Split>
+    <div
+      className="h-full min-h-0"
+      onMouseUp={() => {
+        onSelect.current = window.getSelection()?.toString() ?? "";
+      }}
+      onTouchEnd={() => {
+        onSelect.current = window.getSelection()?.toString() ?? "";
+      }}
+    >
+      <CodeEditor lang="sql" value={code} onChange={onChange} onRun={run} />
+    </div>
   );
 }

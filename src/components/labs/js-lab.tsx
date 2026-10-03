@@ -1,17 +1,17 @@
 import { AppShell, NativeSelect, ToolRow } from "@/components/app-shell";
 import { CodeEditor, type EditorDiagnostic } from "@/components/code-editor";
-import { ConsolePane, type LogItem } from "@/components/console-pane";
+import { type LogItem } from "@/components/console-pane";
 import { Button } from "@/components/ui/button";
 import { DownloadMenu } from "@/components/download-menu";
-import { PreviewControls } from "@/components/preview-controls";
+import { InputBar } from "@/components/input-bar";
+import { PreviewStatus } from "@/components/preview-status";
 import { derivePreviewState } from "@/lib/preview-channel";
 import { simpleFiles } from "@/lib/project-files";
 import { usePreview } from "@/lib/use-preview";
 import { JS_HINTS, JS_SAMPLES, loadStr, saveStr } from "@/lib/studio";
-import { uid } from "@/lib/utils";
+import { uid, lastPrompt } from "@/lib/utils";
 import { Copy, Eraser, Play, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Split, Panel, Handle } from "@/components/split";
 import { toast } from "sonner";
 
 const KEYS = Object.keys(JS_SAMPLES);
@@ -79,11 +79,6 @@ export function JsLab() {
       note: "JavaScript brauzerdə, təcrid olunmuş sandbox-da icra olunur.",
     });
   }, [code, items, busy, waiting, status, label, elapsed, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const openPreview = useCallback(() => {
-    const ok = pv.open({ code: code, items, state: "idle", label: "Gözləyir" });
-    if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
-  }, [pv, code, items]);
 
   useEffect(() => {
     const saved = loadStr("js.code", "");
@@ -169,10 +164,8 @@ export function JsLab() {
       return;
     }
     if (!ready || !frame.current?.contentWindow) return;
-    if (pv.autoOpen) {
-      const ok = pv.open({ code, items: [], state: "running", label: "İcra olunur…" });
-      if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
-    }
+    if (!pv.open({ code, items: [], state: "running", label: "İcra olunur…" }))
+      toast("Brauzer yeni səhifəni blokladı — «Önizləməni aç» düyməsinə basın.");
     busyRef.current = true;
     setBusy(true);
     setWaiting(false);
@@ -249,7 +242,6 @@ export function JsLab() {
           Kopyala
         </Button>
         <DownloadMenu lang="javascript" zipName="javascript-layihe" files={files} />
-        <PreviewControls auto={pv.autoOpen} onAuto={pv.setAutoOpen} onOpen={openPreview} />
         <Button
           size="sm"
           onClick={() => {
@@ -264,44 +256,29 @@ export function JsLab() {
           await input("…") · {elapsed || "limitsiz"}
         </span>
       </ToolRow>
-      <Split orientation="vertical" className="min-h-0 flex-1">
-        <Panel defaultSize="62%" minSize="28%">
-          <CodeEditor
-            lang="javascript"
-            value={code}
-            onChange={onChange}
-            onRun={run}
-            diagnostics={diags}
-          />
-        </Panel>
-        <Handle className="h-1.5" />
-        <Panel defaultSize="38%" minSize="18%">
-          <ConsolePane
-            items={items}
-            waiting={waiting}
-            onSubmitInput={onInput}
-            empty="Kodu başladanda nəticə burada görünəcək. input üçün: await input('Sual: ')"
-            header={
-              <div className="flex h-10 shrink-0 items-center justify-between border-b border-border px-3 text-[11px] uppercase tracking-wide text-subtle">
-                <span>Konsol</span>
-                <button
-                  className="text-muted hover:text-fg"
-                  onClick={() => {
-                    const t = items
-                      .filter((i) => i.kind === "text")
-                      .map((i) => (i.kind === "text" ? i.text : ""))
-                      .join("");
-                    void navigator.clipboard.writeText(t);
-                    toast("Çıxış kopyalandı");
-                  }}
-                >
-                  Kopyala
-                </button>
-              </div>
-            }
-          />
-        </Panel>
-      </Split>
+      <PreviewStatus
+        href={pv.href}
+        target={pv.target}
+        state={derivePreviewState({
+          busy: busy,
+          waiting: waiting,
+          failed: status === "err",
+          hasOutput: items.length > 0,
+        })}
+        opened={pv.opened}
+        blocked={pv.blocked}
+        onPrime={() => pv.prime()}
+      />
+      <div className="min-h-0 flex-1">
+        <CodeEditor
+          lang="javascript"
+          value={code}
+          onChange={onChange}
+          onRun={run}
+          diagnostics={diags}
+        />
+      </div>
+      {waiting ? <InputBar prompt={lastPrompt(items)} onSubmit={onInput} /> : null}
     </AppShell>
   );
 }

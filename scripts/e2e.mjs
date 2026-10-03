@@ -64,9 +64,9 @@ if (want("html")) {
   const page = await ctx.newPage();
   await page.goto(BASE + "/html");
   await page.waitForSelector(".cm-content");
-  // inline preview is sandboxed
-  const sb = await page.locator("iframe[title='Nəticə']").getAttribute("sandbox");
-  check("html: inline preview iframe is sandboxed (no allow-same-origin)", !!sb && sb.includes("allow-scripts") && !sb.includes("allow-same-origin"), sb);
+  // the code screen has NO inline preview / output pane
+  check("html: no inline preview iframe on the code screen", (await page.locator("iframe").count()) === 0);
+  check("html: status line + reopen link present", (await page.getByRole("status").getByRole("link", { name: "Önizləməni aç" }).count()) === 1);
   // write a page that uses console + localStorage
   await page.getByRole("button", { name: "JS", exact: true }).click();
   await setEditor(page, `console.log("konsol-test", 21*2); localStorage.setItem("k","v"); document.body.insertAdjacentHTML("beforeend","<p id=ls>LS="+localStorage.getItem("k")+"</p>"); throw new Error("boom-test");`);
@@ -91,17 +91,9 @@ if (want("html")) {
   await pop.waitForFunction(() => document.querySelector("iframe")?.getAttribute("srcdoc")?.includes("LIVE-UPDATE-OK"), null, { timeout: 8000 }).catch(() => {});
   const upd = await pop.locator("iframe").getAttribute("srcdoc");
   check("html: preview page live-updates while editing", /LIVE-UPDATE-OK/.test(upd || ""));
-  // toggle off => no popup
-  await page.getByLabel("Başlatda yeni səhifədə aç").uncheck();
-  let opened = false;
-  const h = () => (opened = true);
-  ctx.on("page", h);
-  await runBtn(page).click();
-  await page.waitForTimeout(1200);
-  ctx.off("page", h);
-  check("html: auto-open can be switched off", !opened);
-  await page.getByRole("button", { name: /^Yeni səhifə/ }).first().click().catch(() => {});
-  await page.getByLabel("Başlatda yeni səhifədə aç").check();
+  check("html: no auto-open toggle anymore", (await page.getByLabel("Başlatda yeni səhifədə aç").count()) === 0);
+  const st = await page.getByTestId("preview-status").innerText();
+  check("html: status says preview opened in new page", /Önizləmə yeni səhifədə açıldı/.test(st), st);
   await pop.close();
   await page.close();
 }
@@ -115,9 +107,46 @@ if (want("js")) {
   const pop = await runAndPopup(ctx, page, runBtn(page));
   check("js: new page opens", /\/preview\?lang=javascript/.test(pop.url()), pop.url());
   const t = await outputOf(pop, /Hazırdır/, 15000);
+  check("js: no inline console on the code screen", !/Konsol|Kodu başladanda nəticə/.test(await page.locator("body").innerText()));
   check("js: output shown in new page", /js-out \[ 1, 4, 9 \]/.test(t) && /\(index\)/.test(t) && /Hazırdır/.test(t), t.slice(-120));
   await pop.close();
   await page.close();
+}
+
+if (want("jsinput")) {
+  const page = await ctx.newPage();
+  await page.goto(BASE + "/javascript");
+  await page.waitForSelector(".cm-content");
+  await waitEnabled(page, 20000);
+  await setEditor(page, `const ad = await input("Ad: "); console.log("Salam, " + ad + "!");`);
+  const pop = await runAndPopup(ctx, page, runBtn(page));
+  await page.getByLabel("Giriş").waitFor({ timeout: 10000 });
+  check("js: input box appears on the code screen while waiting", true);
+  const w = await outputOf(pop, /Giriş gözlənilir/, 8000);
+  check("js: preview page shows 'waiting for input'", /Giriş gözlənilir/.test(w), w.slice(0, 120));
+  await page.getByLabel("Giriş").fill("Əli");
+  await page.getByLabel("Giriş").press("Enter");
+  const t = await outputOf(pop, /Salam, Əli!/, 10000);
+  check("js: answer reaches the program, result in new page", /Salam, Əli!/.test(t), t.slice(-100));
+  await pop.close();
+  await page.close();
+}
+
+if (want("blocked")) {
+  const bctx = await newCtx();
+  await bctx.addInitScript(() => { window.open = () => null; }); // pop-up blocker
+  const page = await bctx.newPage();
+  await page.goto(BASE + "/html");
+  await page.waitForSelector(".cm-content");
+  await runBtn(page).click();
+  const st = await page.getByTestId("preview-status").innerText();
+  check("blocked: clear message shown when pop-up is blocked", /blokladı/.test(st), st);
+  const link = page.getByRole("status").getByRole("link", { name: "Önizləməni aç" });
+  const [pop] = await Promise.all([bctx.waitForEvent("page", { timeout: 10000 }), link.click()]);
+  await pop.waitForSelector("iframe", { timeout: 10000 });
+  const doc = await pop.locator("iframe").getAttribute("srcdoc");
+  check("blocked: 'Önizləməni aç' link opens the preview anyway (not blockable)", /preview\?lang=html/.test(pop.url()) && /Nibras/.test(doc || ""), pop.url());
+  await bctx.close();
 }
 
 if (want("sql")) {
@@ -128,6 +157,7 @@ if (want("sql")) {
   await setEditor(page, "SELECT ad, bal FROM telebeler ORDER BY bal DESC LIMIT 3;");
   const pop = await runAndPopup(ctx, page, runBtn(page));
   const t = await outputOf(pop, /Nigar/, 20000);
+  check("sql: no inline result table on the code screen", (await page.locator("table").count()) === 0);
   check("sql: result table in new page", /Nigar/.test(t) && /95/.test(t) && /3 sətir/.test(t), t);
   await pop.close();
   await page.close();

@@ -3,13 +3,7 @@ import { LANGUAGES, type LangId } from "@/lib/studio";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
-function StatusDot({
-  state,
-  label,
-}: {
-  state: "load" | "ok" | "run" | "err";
-  label: string;
-}) {
+function StatusDot({ state, label }: { state: "load" | "ok" | "run" | "err"; label: string }) {
   const color =
     state === "ok"
       ? "bg-ok"
@@ -52,10 +46,7 @@ export function AppShell({
   return (
     <div className="flex h-dvh flex-col bg-bg text-fg">
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-3 sm:px-4">
-        <Link
-          to="/"
-          className="shrink-0 text-[17px] font-semibold tracking-tight text-fg"
-        >
+        <Link to="/" className="shrink-0 text-[17px] font-semibold tracking-tight text-fg">
           Nibras<span className="text-accent">Code</span>
         </Link>
         <nav className="hidden min-w-0 flex-1 items-center gap-1 md:flex">
@@ -67,9 +58,7 @@ export function AppShell({
                 to={l.path}
                 className={cn(
                   "rounded-md px-3 py-1.5 text-sm transition-colors duration-150",
-                  on
-                    ? "bg-elevated text-fg"
-                    : "text-muted hover:bg-elevated/60 hover:text-fg",
+                  on ? "bg-elevated text-fg" : "text-muted hover:bg-elevated/60 hover:text-fg",
                 )}
               >
                 {l.label}

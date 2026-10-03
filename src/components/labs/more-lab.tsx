@@ -1,8 +1,8 @@
 import { AppShell, NativeSelect, ToolRow } from "@/components/app-shell";
 import { CodeEditor } from "@/components/code-editor";
-import { ConsolePane, type LogItem } from "@/components/console-pane";
+import { type LogItem } from "@/components/console-pane";
 import { DownloadMenu } from "@/components/download-menu";
-import { PreviewControls } from "@/components/preview-controls";
+import { PreviewStatus } from "@/components/preview-status";
 import { Button } from "@/components/ui/button";
 import { runCCompile } from "@/lib/compile";
 import { getMoreLang, MORE_LANGS } from "@/lib/more-langs";
@@ -14,7 +14,6 @@ import { adaptJava, formatResult, resultFailed } from "@/lib/wandbox";
 import { uid } from "@/lib/utils";
 import { Copy, Eraser, Play, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Split, Panel, Handle } from "@/components/split";
 import { toast } from "sonner";
 
 type Codes = Record<string, string>;
@@ -88,11 +87,6 @@ export function MoreLab() {
     });
   }, [code, items, busy, status, label, elapsed, lang.label, pv.push]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openPreview = useCallback(() => {
-    const ok = pv.open({ code, items, state: "idle", label: "Gözləyir" });
-    if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
-  }, [pv, code, items]);
-
   runRef.current = () => {
     if (busy) {
       abort.current?.abort();
@@ -103,10 +97,8 @@ export function MoreLab() {
       append("m", "İcra dayandırıldı.\n");
       return;
     }
-    if (pv.autoOpen) {
-      const ok = pv.open({ code, items: [], state: "running", label: "Kompilyasiya…" });
-      if (!ok) toast("Yeni səhifə bloklandı — brauzerdə pop-up-a icazə verin.");
-    }
+    if (!pv.open({ code, items: [], state: "running", label: "Kompilyasiya…" }))
+      toast("Brauzer yeni səhifəni blokladı — «Önizləməni aç» düyməsinə basın.");
     const ctl = new AbortController();
     abort.current = ctl;
     setBusy(true);
@@ -178,7 +170,6 @@ export function MoreLab() {
           Kopyala
         </Button>
         <DownloadMenu lang="more" zipName={`${lang.id}-layihe`} files={files} />
-        <PreviewControls auto={pv.autoOpen} onAuto={pv.setAutoOpen} onOpen={openPreview} />
         <Button
           size="sm"
           onClick={() => {
@@ -192,63 +183,43 @@ export function MoreLab() {
         </Button>
         <span className="ml-auto hidden text-xs text-subtle sm:block">{elapsed || lang.file}</span>
       </ToolRow>
-      <Split orientation="vertical" className="min-h-0 flex-1">
-        <Panel defaultSize="58%" minSize="28%">
-          <CodeEditor
-            key={langId}
-            lang={lang.editor}
-            value={code}
-            onChange={onChange}
-            onRun={run}
+      <PreviewStatus
+        href={pv.href}
+        target={pv.target}
+        state={derivePreviewState({
+          busy: busy,
+          waiting: false,
+          failed: status === "err",
+          hasOutput: items.length > 0,
+        })}
+        opened={pv.opened}
+        blocked={pv.blocked}
+        onPrime={() => pv.prime()}
+      />
+      <div className="min-h-0 flex-1">
+        <CodeEditor key={langId} lang={lang.editor} value={code} onChange={onChange} onRun={run} />
+      </div>
+      <div className="grid shrink-0 gap-3 border-t border-torder bg-surface p-3 sm:grid-cols-2">
+        <label className="grid gap-1.5 text-[11px] uppercase tracking-wide text-subtle">
+          Compiler / runtime parametrləri
+          <input
+            value={flags}
+            onChange={(e) => setFlags(e.target.value)}
+            placeholder="(boş ola bilər)"
+            className="h-10 rounded-md border border-torder bg-elevated px-2 font-mono text-xs text-fg outline-none"
           />
-        </Panel>
-        <Handle className="h-1.5" />
-        <Panel defaultSize="42%" minSize="20%">
-          <div className="flex h-full min-h-0 flex-col">
-            <div className="grid shrink-0 gap-3 border-b border-border bg-surface p-3 sm:grid-cols-2">
-              <label className="grid gap-1.5 text-[11px] uppercase tracking-wide text-subtle">
-                Compiler / runtime parametrləri
-                <input
-                  value={flags}
-                  onChange={(e) => setFlags(e.target.value)}
-                  placeholder="(boş ola bilər)"
-                  className="h-10 rounded-md border border-border bg-elevated px-2 font-mono text-xs text-fg outline-none"
-                />
-              </label>
-              <label className="grid gap-1.5 text-[11px] uppercase tracking-wide text-subtle">
-                stdin
-                <textarea
-                  value={stdin}
-                  onChange={(e) => setStdin(e.target.value)}
-                  rows={2}
-                  placeholder="Proqram üçün giriş"
-                  className="rounded-md border border-border bg-elevated p-2 font-mono text-xs text-fg outline-none"
-                />
-              </label>
-            </div>
-            <ConsolePane
-              className="min-h-0 flex-1"
-              items={items}
-              empty="Kodu işə salmaq üçün Compile & Run. Kod uzaq sandbox serverdə (wandbox.org) icra olunur."
-              header={
-                <div className="flex h-10 shrink-0 items-center justify-between border-b border-border px-3 text-[11px] uppercase tracking-wide text-subtle">
-                  <span>Output</span>
-                  <button
-                    className="text-muted hover:text-fg"
-                    onClick={() => {
-                      const t = items.map((i) => (i.kind === "text" ? i.text : "")).join("");
-                      void navigator.clipboard?.writeText(t);
-                      toast("Çıxış kopyalandı");
-                    }}
-                  >
-                    Kopyala
-                  </button>
-                </div>
-              }
-            />
-          </div>
-        </Panel>
-      </Split>
+        </label>
+        <label className="grid gap-1.5 text-[11px] uppercase tracking-wide text-subtle">
+          stdin
+          <textarea
+            value={stdin}
+            onChange={(e) => setStdin(e.target.value)}
+            rows={2}
+            placeholder="Proqram üçün giriş"
+            className="rounded-md border border-torder bg-elevated p-2 font-mono text-xs text-fg outline-none"
+          />
+        </label>
+      </div>
     </AppShell>
   );
 }

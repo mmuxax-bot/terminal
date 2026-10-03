@@ -13,9 +13,11 @@ TanStack Start + Vite + Nitro (Vercel preset). UI Azərbaycan dilindədir.
 | SQL | SQLite (sql.js, WebAssembly) | istifadəçinin brauzerində |
 | C, C++, Java, PHP, Go, Rust, Node.js, TypeScript, Ruby, Perl, Lua, Bash, Julia, R, Haskell | [Wandbox](https://wandbox.org) uzaq sandbox compiler (əvvəl brauzerdən, alınmasa `/_serverFn` ilə serverdən) | uzaq xidmət |
 
-### Nəticə yeni səhifədə
-Hər dildə **Başlat** (və ya Ctrl+Enter) nəticəni yeni `/preview?lang=…` səhifəsində açır (eyni dil üçün eyni tab təkrar istifadə olunur).
-Səhifə studio ilə canlı sinxronlaşır (BroadcastChannel + localStorage). Toolbar-dakı «Başlatda yeni səhifədə aç» ilə söndürmək, «Yeni səhifə» ilə əl ilə açmaq olar.
+### Nəticə YALNIZ yeni səhifədə
+Redaktor ekranında heç bir önizləmə/çıxış paneli yoxdur: yalnız redaktor, alətlər paneli və kiçik status sətri.
+**Başlat** (və ya Ctrl+Enter) kliklə eyni anda `/preview?lang=…` tabını açır/təkrar istifadə edir (həmişə, söndürmək olmur).
+Pop-up bloklansa status sətri xəbərdarlıq göstərir; **«Önizləməni aç»** həqiqi linkdir, bloklanmır.
+Səhifə studio ilə canlı sinxronlaşır (BroadcastChannel + localStorage). `input()` / `await input()` cavabı redaktor ekranında kiçik giriş sətri ilə verilir.
 HTML önizləməsi tam səhifədir (konsol paneli, yenilə, tam ekran). Digər dillərdə çıxış (mətn, cədvəl, qrafik şəkli) formatlı göstərilir.
 
 ### Kodu yüklə
