@@ -221,6 +221,36 @@ if (want("cfallback")) {
   await page.close();
 }
 
+if (want("rustcompiler")) {
+  // 1) browser blocked -> server fallback picks a valid compiler from list.json and runs the sample
+  const page = await ctx.newPage();
+  await page.route("https://wandbox.org/**", (r) => r.abort());
+  await page.goto(BASE + "/rust");
+  await page.waitForSelector(".cm-content");
+  const pop = await runAndPopup(ctx, page, runBtn(page));
+  const t = await outputOf(pop, /\[1, 4, 9\]|Unknown compiler|Xidmət xətası/, 60000);
+  check("rust: server fallback compiles+runs the sample", /\[1, 4, 9\]/.test(t) && !/Unknown compiler/.test(t), t.slice(-150));
+  await pop.close();
+  await page.close();
+  // 2) a retired pinned name is replaced by the newest listed rust release (checked on the request itself)
+  const p2 = await ctx.newPage();
+  const seen = [];
+  await p2.route("https://wandbox.org/api/list.json", (r) =>
+    r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify([{ name: "rust-1.5.0" }, { name: "rust-1.99.2" }, { name: "rust-head" }]) }));
+  await p2.route("https://wandbox.org/api/compile.json", (r) => {
+    if (r.request().method() === "OPTIONS") return r.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*" } });
+    seen.push(JSON.parse(r.request().postData() || "{}").compiler);
+    return r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ status: "0", program_output: "[1, 4, 9]\n" }) });
+  });
+  await p2.goto(BASE + "/rust");
+  await p2.waitForSelector(".cm-content");
+  const pop2 = await runAndPopup(ctx, p2, runBtn(p2));
+  await outputOf(pop2, /\[1, 4, 9\]/, 30000);
+  check("rust: retired compiler name replaced from list.json", seen[0] === "rust-1.99.2", JSON.stringify(seen));
+  await pop2.close();
+  await p2.close();
+}
+
 if (want("langs")) {
   // every extra language has its own route with only that language
   for (const [id, re] of Object.entries(MORE)) {
